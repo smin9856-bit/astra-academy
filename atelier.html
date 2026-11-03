@@ -750,7 +750,7 @@ function endSeason(state){
   const budgetBefore=state.board.budget;state.board.budget=Math.max(150,Math.min(900,state.board.budget+(met?100:-60)+(moved==='up'?100:0)));boardShift(state,delta);
   const cup=state.cup,cupStageReached=cupResultText(cup);
   const summary={season:state.season,division:div,rank,pts:row.pts,w:row.w,d:row.d,l:row.l,champion:table[0].key,gold:reward.gold,gems:reward.gems,stones:reward.stones,item:item?.id||null,table:table.map(r=>({key:r.key,pts:r.pts,w:r.w,d:r.d,l:r.l,gf:r.gf,ga:r.ga})),promoted,relegated,moved,goal:goal.text,met,confidence:state.board.confidence,delta,budget:state.board.budget,budgetDelta:state.board.budget-budgetBefore,cupChampion:cup?.champion||null,cupResult:cupStageReached};
-  state.trophies.unshift({type:'league',season:state.season,division:div,rank,pts:row.pts});state.seasonSummary=summary;
+  state.trophies.unshift({type:'league',season:state.season,division:div,rank,pts:row.pts,...(rank===1?{ceremony:{seen:false,squad:[...state.squad],gold:reward.gold,gems:reward.gems,stones:reward.stones}}:{})});state.seasonSummary=summary;
   addNews(state,'리그',`제 ${state.season}학기 ${div}부 리그 최종 ${rank}위${rank===1?' · 우승!':''}${moved==='up'?' · 1부 승격!':moved==='down'?' · 2부 강등':''}`);
   state.divisions={1:[...t1.map(r=>r.key).filter(k=>!relegated.includes(k)),...promoted],2:[...t2.map(r=>r.key).filter(k=>!promoted.includes(k)),...relegated]};
   state.division=state.divisions[1].includes('AST')?1:2;state.season++;startSeason(state);
@@ -932,7 +932,7 @@ function settle(state,battle){
   } else {
     const stage=fx.stage,ours={home:'AST',away:opp,hs:score[0],as:score[1],w:battle.winner,pen:draw,winner:cupWin?'AST':opp};playCupRound(state,stage,ours);
     if(!cupWin)state.cup.alive=false;else state.stones=(state.stones||0)+1;label=`컵 ${CUP_STAGES[stage]}`;
-    if(cupWin&&state.cup.champion==='AST'){state.gold+=2000;state.gems+=800;state.stones+=2;const it=grantItem(state,'SR',random(hash('cupprize'+state.season)));state.trophies.unshift({type:'cup',season:state.season});addNews(state,'컵',`아스트라 컵 우승! 상금 2,000 골드 · 800 크리스탈 · 「${it.name}」`);boardShift(state,10);}
+    if(cupWin&&state.cup.champion==='AST'){state.gold+=2000;state.gems+=800;state.stones+=2;const it=grantItem(state,'SR',random(hash('cupprize'+state.season)));state.trophies.unshift({type:'cup',season:state.season,ceremony:{seen:false,squad:[...state.squad],gold:2000,gems:800,stones:2}});addNews(state,'컵',`아스트라 컵 우승! 상금 2,000 골드 · 800 크리스탈 · 「${it.name}」`);boardShift(state,10);}
     else boardShift(state,cupWin?2:stage===0?-3:0);
   }
   const ourMvp=mvp.team===0?mvp.id:null,starters=battle.units.filter(u=>u.team===0&&!u.subbedOut).map(u=>u.id),speaker=ourMvp||starters[Math.floor(battle.time)%starters.length],good0=type==='cup'?cupWin:win,quote={id:speaker,text:voice(speaker,ourMvp?'mvp':good0?'win':'lose',state.day+state.slot)};
