@@ -476,7 +476,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[];
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??='코치';
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -655,6 +655,9 @@ function runExpedition(state,zoneId,ids,rng=Math.random){if(canExpedition(state,
   else{const def=grantItem(state,'R',rng);items.push(def.id);notes.push('후퇴하며 겨우 장비 하나를 챙겼어요.');}
   const log={zone:z.id,ok,party:[...ids],items,stones,day:state.day,season:state.season,chance:Math.round(chance*100)};state.expeditions.unshift(log);state.expeditions=state.expeditions.slice(0,8);
   addNews(state,'원정',`${z.name} 원정 ${ok?'성공':'실패'} · 장비 ${items.length}개${stones?' · 각성석 +1':''}`);return {...log,notes};}
+// 세이브 코드: 진행 상황을 문자열로 옮깁니다. ASTRA1: 접두사 + UTF-8 JSON의 base64.
+function encodeSave(state){const bytes=new TextEncoder().encode(JSON.stringify(state));let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));return 'ASTRA1:'+btoa(bin);}
+function decodeSave(code){try{let raw=String(code||'').trim();if(raw.startsWith('ASTRA1:')){const bin=atob(raw.slice(7).replace(/\s+/g,''));raw=new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0)));}const s=JSON.parse(raw);if(s?.version!==1||s?.squad?.length!==5||!s?.roster||!s?.tactics||s.squad.some(id=>!s.roster[id]))return null;return upgradeState(s);}catch{return null;}}
 function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<180||p.fatigue>=90) return false; state.gold-=180; p[type]+=(type==='speed'?3:4)+lvl;p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
 function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
 function rest(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
