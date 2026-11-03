@@ -476,7 +476,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??='코치';
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치';
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -618,8 +618,21 @@ function chooseTrait(state,id,traitId){const p=state.roster[id];if(!p||!pendingT
 const bondReady=p=>!!p&&p.chapter<BOND_STORIES_LENGTH&&p.affinity>=BOND_LEVELS[p.chapter];
 const BOND_STORIES_LENGTH=3;
 // 학생의 말투로 된 대사 한 줄. kind: greet, talk, train, win, lose, mvp, skill, tired, happy
-function voice(id,kind,seed=0){const lines=HERO_LORE[id]?.lines?.[kind];return lines?.length?lines[Math.abs(Math.floor(seed))%lines.length]:'';}
-function talk(state,id){const p=state.roster[id],c=CHARACTERS.find(c=>c.id===id);if(!p||p.talked===state.day)return false;p.talked=state.day;p.affinity=Math.min(100,p.affinity+5);p.morale=clamp100(p.morale+2);const mood=p.morale<45?'tired':p.morale>=85?'happy':'talk',pool=[...(HERO_LORE[id]?.lines?.[mood]||[]),...(mood==='talk'?[c.quote]:[])];return pick(pool.length?pool:[c.quote,...TALK_LINES],random(hash(id+'-'+state.season+'-'+state.day)));}
+// 학생들이 부르는 호칭: 대사 속 '코치/코치님'을 계정의 이름 + 호칭(코치·선생님·교관님·없음)으로 바꿉니다.
+// 이름이 없으면 호칭만, 호칭이 '없음'이면 이름만 부릅니다. 둘 다 비면 기본값 '코치'. 뒤따르는 조사(가/이, 를/을 …)도 받침에 맞춥니다.
+const COACH_TITLES=['코치','선생님','교관님',''];
+const COACH={name:'',title:'코치'};
+function coachAddress(c=COACH){const name=String(c.name||'').trim(),title=c.title??'코치';return (title?(name?`${name} ${title}`:title):name)||'코치';}
+const JOSA=[['가','이'],['를','을'],['는','은'],['와','과'],['랑','이랑'],['로','으로']];
+function callCoach(text,c=COACH){const t=String(text??''),name=String(c.name||'').trim(),title=c.title??'코치',who=coachAddress(c);
+  if(who==='코치')return t;
+  const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  // '코치' 호칭: 기존 '코치님/코치' 형태를 살리고 이름만 앞에 붙입니다. 이미 바뀐 문장에 다시 써도 같습니다.
+  if(title==='코치')return t.replace(new RegExp(`(?:${esc(name)}\\s)?코치`,'g'),`${name} 코치`);
+  const last=who.charCodeAt(who.length-1),hangul=last>=0xAC00&&last<=0xD7A3,jong=hangul?(last-0xAC00)%28:0,batchim=jong>0;
+  return t.replace(/코치(?:님)?((?:이랑|으로|가|이|를|을|는|은|와|과|랑|로)(?![가-힣]))?/g,(m,josa)=>{if(!josa)return who;const pair=JOSA.find(p=>p.includes(josa));if(!pair)return who+josa;const pickB=pair[0]==='로'?batchim&&jong!==8:batchim;return who+pair[pickB?1:0];});}
+function voice(id,kind,seed=0){const lines=HERO_LORE[id]?.lines?.[kind];return lines?.length?callCoach(lines[Math.abs(Math.floor(seed))%lines.length]):'';}
+function talk(state,id){const p=state.roster[id],c=CHARACTERS.find(c=>c.id===id);if(!p||p.talked===state.day)return false;p.talked=state.day;p.affinity=Math.min(100,p.affinity+5);p.morale=clamp100(p.morale+2);const mood=p.morale<45?'tired':p.morale>=85?'happy':'talk',pool=[...(HERO_LORE[id]?.lines?.[mood]||[]),...(mood==='talk'?[c.quote]:[])];return callCoach(pick(pool.length?pool:[c.quote,...TALK_LINES],random(hash(id+'-'+state.season+'-'+state.day))));}
 const duoKey=c=>c.pair.join('+');
 // 함께 선발이고 둘 다 호감도 30 이상인 케미 듀오 중, 아직 이야기를 보지 않은 쌍
 function duoReady(state){return CHEMISTRY.filter(c=>DUO_STORIES[duoKey(c)]&&!state.duos?.[duoKey(c)]&&c.pair.every(id=>state.squad.includes(id)&&(state.roster[id]?.affinity||0)>=30)).map(duoKey);}
