@@ -276,6 +276,31 @@ main.page-enter .panel:nth-child(2),main.page-enter .stat-card:nth-child(2),main
 .hero-pick-card:hover{transform:translateY(-2px);border-color:#e8c27a}.hero-pick-card b{font-size:13px}.hero-pick-card small{font-size:11px;opacity:.7}.hero-pick-card.owned{opacity:.75}
 .ticket-count{display:block;margin-top:6px;font-size:13px;color:#f0cf8a}
 
+/* 특성 등급 */
+.tier-tag{font-style:normal;font-size:11px;padding:1px 6px;border-radius:4px;margin-right:4px;vertical-align:1px;background:rgba(255,255,255,.08);color:#cfc7b8}
+.tier-R .tier-tag{background:rgba(80,150,230,.2);color:#8cc0ff}.tier-E .tier-tag{background:rgba(170,90,230,.22);color:#d3a2ff}
+.tier-L .tier-tag{background:linear-gradient(90deg,#f6d27a,#ff9d4d);color:#2a1606;font-weight:700}
+.option-card.tier-E{border-color:rgba(170,90,230,.55)}.option-card.tier-L{border-color:#f0c25a;box-shadow:0 0 0 1px rgba(240,194,90,.4),0 0 18px rgba(240,170,60,.35);background:linear-gradient(120deg,rgba(240,194,90,.14),rgba(255,140,60,.06));animation:legendGlow 2.4s ease-in-out infinite}
+.trait-chip.tier-L{border-color:#f0c25a;box-shadow:0 0 12px rgba(240,170,60,.3)}
+@keyframes legendGlow{50%{box-shadow:0 0 0 1px rgba(240,194,90,.7),0 0 28px rgba(240,170,60,.55)}}
+.trait-choices>b small{font-weight:400;opacity:.65;margin-left:6px;font-size:12px}
+/* 장비 원정 */
+.exp-zones{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px}
+.exp-zone{text-align:left;color:inherit;font:inherit;cursor:pointer;display:grid;gap:6px;padding:16px;border:1px solid rgba(161,131,86,.45);transition:transform .15s,border-color .15s}
+.exp-zone:hover{transform:translateY(-2px)}.exp-zone.selected{border-color:#e8c27a;box-shadow:0 0 0 2px rgba(232,194,122,.35)}
+.exp-zone.forest{background:linear-gradient(160deg,rgba(60,130,80,.28),rgba(10,8,20,.6))}.exp-zone.canyon{background:linear-gradient(160deg,rgba(200,80,40,.28),rgba(10,8,20,.6))}
+.exp-zone.ruins{background:linear-gradient(160deg,rgba(170,140,80,.28),rgba(10,8,20,.6))}.exp-zone.abyss{background:linear-gradient(160deg,rgba(90,70,200,.32),rgba(10,8,20,.6))}
+.exp-name{font-size:18px;font-weight:700}.exp-zone p{margin:0;font-size:13px;opacity:.8}
+.exp-meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;opacity:.85}.exp-odds{font-size:12px;color:#f0cf8a}
+.exp-party{padding:18px;display:grid;gap:12px}.exp-party-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.exp-party h3{margin:0}.exp-party-head p{margin:4px 0 0;opacity:.85}.exp-why{margin:0;color:#f0a070;font-size:13px}
+.exp-roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.exp-member{position:relative;display:grid;justify-items:center;gap:2px;padding:8px 4px;color:inherit;font:inherit;cursor:pointer;background:rgba(10,8,20,.45);border:1px solid rgba(161,131,86,.35);border-radius:8px}
+.exp-member b{font-size:13px}.exp-member small{font-size:11px;opacity:.7}.exp-member.on{border-color:#e8c27a;background:linear-gradient(180deg,color-mix(in srgb,var(--char) 25%,transparent),rgba(10,8,20,.5))}
+.exp-member i{position:absolute;top:4px;right:6px;font-style:normal;color:#f0cf8a}.exp-member.tired{opacity:.45}
+.exp-log{display:grid;gap:6px}.exp-log-row{display:grid;grid-template-columns:140px 150px 1fr 2fr;gap:10px;align-items:center;padding:10px 14px;font-size:13px}.exp-log-row.fail{opacity:.7}.exp-log-row em{font-style:normal;margin-right:4px}
+@media(max-width:760px){.exp-log-row{grid-template-columns:1fr 1fr}}
+.exp-result{display:grid;gap:12px;text-align:center}.exp-result h2{margin:0}.exp-result p{margin:0}.exp-result .shop-grid{text-align:left}.exp-stone{color:#c9a8ff;font-weight:700}.exp-result>.btn{justify-self:center;min-width:140px}
+
 </style>
 </head>
 <body>
@@ -312,31 +337,60 @@ const EXPANSION_LORE=Object.fromEntries(EXPANSION_HEROES.map(c=>[c.id,{
 
 // 아카데미 운영 콘텐츠: 특성, 장비, 시설, 팀 케미, 랜덤 이벤트.
 // mod 값 — hp/atk/def/crit/steal/heal/haste: 비율(0.1 = 10%), speed: 고정 수치, guts: 치명상 1회 버팀.
+// 특성 등급: N 일반 · R 희귀 · E 영웅 · L 레전더리
+const TRAIT_TIERS={N:'일반',R:'희귀',E:'영웅',L:'레전더리'};
 const TRAITS = [
-  { id:'iron', name:'강철 피부', desc:'방어력 +15%', mod:{def:.15} },
-  { id:'fury', name:'투지', desc:'공격력 +10%', mod:{atk:.10} },
-  { id:'vital', name:'강인한 체력', desc:'최대 체력 +12%', mod:{hp:.12} },
-  { id:'swift', name:'질풍', desc:'속도 +10', mod:{speed:10} },
-  { id:'eagle', name:'매의 눈', desc:'치명타 확률 +8%p', mod:{crit:.08} },
-  { id:'vamp', name:'흡혈 검술', desc:'가한 피해의 10%만큼 회복', mod:{steal:.10} },
-  { id:'mend', name:'치유의 손', desc:'회복량 +25%', mod:{heal:.25} },
-  { id:'focus', name:'마나 순환', desc:'스킬 재사용 시간 −20%', mod:{haste:.20} },
-  { id:'guts', name:'불굴', desc:'전투당 한 번, 쓰러질 피해를 받아도 체력 1로 버팁니다', mod:{guts:true} }
+  { id:'iron', tier:'N', name:'강철 피부', desc:'방어력 +15%', mod:{def:.15} },
+  { id:'fury', tier:'N', name:'투지', desc:'공격력 +10%', mod:{atk:.10} },
+  { id:'vital', tier:'N', name:'강인한 체력', desc:'최대 체력 +12%', mod:{hp:.12} },
+  { id:'swift', tier:'N', name:'질풍', desc:'속도 +10', mod:{speed:10} },
+  { id:'eagle', tier:'N', name:'매의 눈', desc:'치명타 확률 +8%p', mod:{crit:.08} },
+  { id:'vamp', tier:'R', name:'흡혈 검술', desc:'가한 피해의 10%만큼 회복', mod:{steal:.10}, noRole:'서포터' },
+  { id:'mend', tier:'R', name:'치유의 손', desc:'회복량 +25%', mod:{heal:.25}, role:'서포터' },
+  { id:'focus', tier:'R', name:'마나 순환', desc:'스킬 재사용 시간 −20%', mod:{haste:.20} },
+  { id:'guts', tier:'R', name:'불굴', desc:'전투당 한 번, 쓰러질 피해를 받아도 체력 1로 버팁니다', mod:{guts:true} },
+  { id:'tactician', tier:'R', name:'속공가', desc:'공격력 +6% · 속도 +6', mod:{atk:.06,speed:6} },
+  { id:'bulwark', tier:'R', name:'수호자', desc:'방어력 +10% · 체력 +8%', mod:{def:.10,hp:.08} },
+  { id:'sharp', tier:'R', name:'급소 사냥', desc:'치명타 +6%p · 공격력 +5%', mod:{crit:.06,atk:.05} },
+  { id:'berserk', tier:'E', name:'광전사', desc:'공격력 +20% · 방어력 −5%', mod:{atk:.20,def:-.05} },
+  { id:'fortress', tier:'E', name:'걸어다니는 요새', desc:'방어력 +25% · 체력 +10% · 속도 −4', mod:{def:.25,hp:.10,speed:-4} },
+  { id:'phantom', tier:'E', name:'그림자 걸음', desc:'속도 +14 · 치명타 +6%p', mod:{speed:14,crit:.06} },
+  { id:'sage', tier:'E', name:'현자의 지혜', desc:'스킬 재사용 −25% · 회복량 +15%', mod:{haste:.25,heal:.15} },
+  { id:'bloodlord', tier:'E', name:'피의 군주', desc:'가한 피해의 14% 회복 · 공격력 +6%', mod:{steal:.14,atk:.06}, noRole:'서포터' },
+  { id:'starborn', tier:'L', name:'별의 아이', desc:'공격력·방어력·체력 +15%', mod:{atk:.15,def:.15,hp:.15} },
+  { id:'immortal', tier:'L', name:'불멸', desc:'전투당 한 번 체력 1로 버팀 · 체력 +20% · 방어력 +10%', mod:{guts:true,hp:.20,def:.10} },
+  { id:'tempest', tier:'L', name:'폭풍의 화신', desc:'속도 +16 · 스킬 재사용 −25% · 치명타 +8%p', mod:{speed:16,haste:.25,crit:.08} },
+  { id:'reaper', tier:'L', name:'사신', desc:'공격력 +22% · 치명타 +12%p · 피해의 6% 회복', mod:{atk:.22,crit:.12,steal:.06}, noRole:'서포터' },
+  { id:'saint', tier:'L', name:'대성녀의 축복', desc:'회복량 +45% · 스킬 재사용 −25% · 체력 +10%', mod:{heal:.45,haste:.25,hp:.10}, role:'서포터' }
 ];
 const TRAIT_LEVELS = [3,6,9];
 
+// 장비 슬롯: 무기 · 방어구 · 장신구. expedition:true는 원정에서만 얻는 장비입니다.
 const ITEMS = [
   { id:'oak', name:'수련용 목검', slot:'weapon', rarity:'R', price:600, desc:'공격력 +6%', mod:{atk:.06} },
+  { id:'bow', name:'사냥꾼의 단궁', slot:'weapon', rarity:'R', price:650, desc:'공격력 +4% · 치명타 +3%p', mod:{atk:.04,crit:.03} },
   { id:'rune', name:'룬 새김 무기', slot:'weapon', rarity:'SR', price:1500, desc:'공격력 +12% · 치명타 +3%p', mod:{atk:.12,crit:.03} },
   { id:'aegis', name:'기사단 방패', slot:'weapon', rarity:'SR', price:1500, desc:'방어력 +18% · 체력 +6%', mod:{def:.18,hp:.06} },
   { id:'starstaff', name:'별빛 지팡이', slot:'weapon', rarity:'SR', price:1600, desc:'공격력 +10% · 스킬 재사용 −10%', mod:{atk:.10,haste:.10} },
+  { id:'frostfang', name:'서리 송곳니', slot:'weapon', rarity:'SR', price:1600, desc:'공격력 +9% · 속도 +5', mod:{atk:.09,speed:5} },
   { id:'dragon', name:'용린 무기', slot:'weapon', rarity:'SSR', price:3200, desc:'공격력 +18% · 치명타 +5%p', mod:{atk:.18,crit:.05} },
+  { id:'sunlance', name:'태양의 창', slot:'weapon', rarity:'SSR', price:3400, desc:'공격력 +15% · 스킬 재사용 −15%', mod:{atk:.15,haste:.15} },
+  { id:'voidblade', name:'심연의 검', slot:'weapon', rarity:'SSR', price:0, expedition:true, desc:'공격력 +22% · 치명타 +6%p · 피해의 5% 회복', mod:{atk:.22,crit:.06,steal:.05} },
+  { id:'leather', name:'가죽 갑옷', slot:'armor', rarity:'R', price:550, desc:'방어력 +8%', mod:{def:.08} },
+  { id:'robe', name:'견습 마법사 로브', slot:'armor', rarity:'R', price:600, desc:'체력 +8% · 스킬 재사용 −5%', mod:{hp:.08,haste:.05} },
+  { id:'chain', name:'사슬 갑옷', slot:'armor', rarity:'SR', price:1400, desc:'방어력 +14% · 체력 +6%', mod:{def:.14,hp:.06} },
+  { id:'windcloak', name:'바람결 망토', slot:'armor', rarity:'SR', price:1400, desc:'속도 +7 · 방어력 +6%', mod:{speed:7,def:.06} },
+  { id:'blessed', name:'축복받은 성의', slot:'armor', rarity:'SR', price:1500, desc:'회복량 +20% · 체력 +8%', mod:{heal:.20,hp:.08} },
+  { id:'mithril', name:'미스릴 판금', slot:'armor', rarity:'SSR', price:3200, desc:'방어력 +22% · 체력 +12%', mod:{def:.22,hp:.12} },
+  { id:'starmantle', name:'별자리 외투', slot:'armor', rarity:'SSR', price:0, expedition:true, desc:'방어력 +15% · 체력 +15% · 속도 +6', mod:{def:.15,hp:.15,speed:6} },
   { id:'clover', name:'행운의 부적', slot:'charm', rarity:'R', price:550, desc:'치명타 +5%p', mod:{crit:.05} },
   { id:'pendant', name:'생명의 펜던트', slot:'charm', rarity:'R', price:650, desc:'최대 체력 +12%', mod:{hp:.12} },
   { id:'feather', name:'바람의 깃털', slot:'charm', rarity:'SR', price:1200, desc:'속도 +8', mod:{speed:8} },
   { id:'ruby', name:'피의 루비', slot:'charm', rarity:'SR', price:1400, desc:'가한 피해의 8%만큼 회복', mod:{steal:.08} },
   { id:'rosary', name:'성녀의 묵주', slot:'charm', rarity:'SR', price:1300, desc:'회복량 +25%', mod:{heal:.25} },
-  { id:'medal', name:'불굴의 훈장', slot:'charm', rarity:'SSR', price:3000, desc:'전투당 한 번 체력 1로 버팀 · 방어력 +8%', mod:{guts:true,def:.08} }
+  { id:'hourglass', name:'시간의 모래시계', slot:'charm', rarity:'SR', price:1500, desc:'스킬 재사용 −15%', mod:{haste:.15} },
+  { id:'medal', name:'불굴의 훈장', slot:'charm', rarity:'SSR', price:3000, desc:'전투당 한 번 체력 1로 버팀 · 방어력 +8%', mod:{guts:true,def:.08} },
+  { id:'phoenix', name:'불사조의 깃털', slot:'charm', rarity:'SSR', price:0, expedition:true, desc:'전투당 한 번 체력 1로 버팀 · 공격력 +10% · 회복량 +20%', mod:{guts:true,atk:.10,heal:.20} }
 ];
 
 const FACILITIES = [
@@ -360,6 +414,15 @@ const CHEMISTRY = [
 
 // fx: gold, gems, xp(대상), fatigue(대상), morale(대상), allMorale, allFatigue, allXp, item(희귀도)
 const EVENTS = [
+  { id:'smith', title:'떠돌이 대장장이', text:n=>`정문 앞에 이름난 떠돌이 대장장이가 수레를 세웠습니다. ${n} 학생이 눈을 떼지 못하네요.`, choices:[
+    { label:'장비를 맞춘다 (900 G)', hint:'골드 −900 · SR 장비 획득', fx:{gold:-900,item:'SR'} },
+    { label:'단련법만 배운다', hint:'대상 경험치 +40', fx:{xp:40} } ] },
+  { id:'cache', title:'훈련장 밑 비밀 창고', text:n=>`${n} 학생이 훈련장 바닥 아래에서 먼지 쌓인 상자를 발견했습니다.`, choices:[
+    { label:'열어 본다', hint:'무작위 장비 획득 · 대상 피로 +8', fx:{item:'random',fatigue:8} },
+    { label:'학교에 신고한다', hint:'골드 +350', fx:{gold:350} } ] },
+  { id:'veteran', title:'퇴역 기사의 선물', text:n=>`옛 기사단장이 ${n} 학생의 경기를 보고 감명받아 아끼던 장비를 들고 찾아왔습니다.`, choices:[
+    { label:'감사히 받는다', hint:'무작위 장비 획득', fx:{item:'random'} },
+    { label:'대신 가르침을 청한다', hint:'대상 경험치 +60 · 사기 +4', fx:{xp:60,morale:4} } ] },
   { id:'night', title:'야간 특훈 요청', text:n=>`${n} 학생이 늦은 밤 연습장 열쇠를 빌려 달라고 합니다. 눈빛이 진지하네요.`, choices:[
     { label:'허락한다', hint:'경험치 +50 · 피로 +20', fx:{xp:50,fatigue:20} },
     { label:'푹 자라고 돌려보낸다', hint:'피로 −10 · 사기 +4', fx:{fatigue:-10,morale:4} } ] },
@@ -718,11 +781,11 @@ function formationPositions(state) {
 }
 function arenaPosition(p) { return { x:Math.round(70+clamp01(p.x)*350), y:Math.round(105+clamp01(p.y)*210) }; }
 function freshState() { const s={ version:1, day:1, season:1, gold:3200, gems:3600, pity:0, squad:['aria','rin','luna','sylvie','noel'], roster:Object.fromEntries(CHARACTERS.slice(0,5).map(c=>[c.id,newProgress()])), tactics:{...DEFAULT_TACTICS}, history:[], match:0, division:2 }; return upgradeState(s); }
-function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], gear:{weapon:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
+function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], gear:{weapon:null,armor:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0;
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[];
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -838,9 +901,10 @@ function startSeason(state){state.leagues={1:newLeague(state.season,state.divisi
 const isMatchDay=state=>state.day>=state.matchDay;
 const recruitCost=state=>300-30*(state.facilities?.scout||0);
 function addNews(state,tag,text){state.news.unshift({season:state.season,day:state.day,tag,text});state.news=state.news.slice(0,14);}
-function grantItem(state,rarity,rng=Math.random){const pool=ITEMS.filter(i=>i.rarity===rarity);const def=pick(pool.length?pool:ITEMS,rng);state.items.push({uid:state.itemSeq++,id:def.id});return def;}
+const SLOT_LABEL={weapon:'무기',armor:'방어구',charm:'장신구'};
+function grantItem(state,rarity,rng=Math.random,expedition=false){const pool=ITEMS.filter(i=>i.rarity===rarity&&(expedition||!i.expedition));const def=pick(pool.length?pool:ITEMS,rng);state.items.push({uid:state.itemSeq++,id:def.id});return def;}
 const rollRarity=(rng,ssr=.05,sr=.35)=>{const r=rng();return r<ssr?'SSR':r<ssr+sr?'SR':'R';};
-function refreshShop(state){const rng=random(hash(`shop-${state.season}-${state.slot??state.match}`));const stock=[];while(stock.length<4){const r=rollRarity(rng,.08,.42),def=pick(ITEMS.filter(i=>i.rarity===r),rng);if(!stock.some(s=>s.id===def.id))stock.push({id:def.id,sold:false});}state.shop={key:`${state.season}-${state.slot??state.match}`,stock};}
+function refreshShop(state){const rng=random(hash(`shop-${state.season}-${state.slot??state.match}`));const stock=[];while(stock.length<4){const r=rollRarity(rng,.08,.42),def=pick(ITEMS.filter(i=>i.rarity===r&&!i.expedition),rng);if(!stock.some(s=>s.id===def.id))stock.push({id:def.id,sold:false});}state.shop={key:`${state.season}-${state.slot??state.match}`,stock};}
 function buyItem(state,index){const s=state.shop?.stock[index],def=s&&itemDef(s.id);if(!def||s.sold||state.gold<def.price)return false;state.gold-=def.price;s.sold=true;state.items.push({uid:state.itemSeq++,id:def.id});return def;}
 function equip(state,id,uid){const p=state.roster[id],it=state.items.find(i=>i.uid===uid);if(!p||!it)return false;const slot=itemDef(it.id).slot;Object.values(state.roster).forEach(o=>{if(o.gear?.[slot]===uid)o.gear[slot]=null;});p.gear[slot]=uid;return true;}
 function unequip(state,id,slot){const p=state.roster[id];if(!p||!(slot in p.gear))return false;p.gear[slot]=null;return true;}
@@ -852,7 +916,11 @@ const STONE_PRICE=1800;
 function buyStone(state){if(!state.shop||state.shop.stoneSold||state.gold<STONE_PRICE)return false;state.gold-=STONE_PRICE;state.stones=(state.stones||0)+1;state.shop.stoneSold=true;return true;}
 const traitSlots=p=>TRAIT_LEVELS.filter(l=>p.level>=l).length;
 const pendingTraits=p=>Math.max(0,traitSlots(p)-(p.traits?.length||0));
-function traitChoices(id,p){const c=CHARACTERS.find(c=>c.id===id);const fits=t=>!(p.traits||[]).includes(t.id)&&(t.id!=='mend'||c.role==='서포터')&&(t.id!=='vamp'||c.role!=='서포터');return shuffle(TRAITS.filter(fits),random(hash(id)+(p.traits?.length||0)*101)).slice(0,3);}
+// 특성 후보: 학생 등급(R·SR·SSR)과 돌파가 높을수록 후보가 많고 높은 등급이 잘 나옵니다. 레전더리는 낮은 확률.
+function traitOdds(id,p){const c=CHARACTERS.find(c=>c.id===id),g={R:0,SR:1,SSR:2}[c.rarity]??0,slot=p.traits?.length||0,up=g+slot*.5+(p.stars||0)*.2;return {count:3+g,legend:.015+g*.0075+(p.stars||0)*.004+slot*.0075,weights:{N:Math.max(15,60-up*14),R:30+up*4,E:Math.max(0,4+up*9)}};}
+function traitChoices(id,p){const c=CHARACTERS.find(c=>c.id===id),rng=random(hash(id)+(p.traits?.length||0)*101+(p.stars||0)*7),o=traitOdds(id,p),fits=t=>!(p.traits||[]).includes(t.id)&&(!t.role||t.role===c.role)&&t.noRole!==c.role,picked=[];
+  for(let i=0;i<o.count;i++){const left=TRAITS.filter(t=>fits(t)&&!picked.includes(t));if(!left.length)break;let tier;if(rng()<o.legend)tier='L';else{const w=o.weights,r=rng()*(w.N+w.R+w.E);tier=r<w.N?'N':r<w.N+w.R?'R':'E';}const pool=left.filter(t=>t.tier===tier);picked.push(pick(pool.length?pool:left.filter(t=>t.tier!=='L').length?left.filter(t=>t.tier!=='L'):left,rng));}
+  const order={L:0,E:1,R:2,N:3};return picked.sort((a,b)=>order[a.tier]-order[b.tier]);}
 function chooseTrait(state,id,traitId){const p=state.roster[id];if(!p||!pendingTraits(p)||!traitChoices(id,p).some(t=>t.id===traitId))return false;p.traits.push(traitId);return true;}
 
 // ── 인연 ──────────────────────────────────────────────
@@ -880,6 +948,22 @@ const COUPONS={welcome:{tickets:10000,gold:10000,label:'웰컴 쿠폰'},siu:{her
 function redeemCoupon(state,raw){const code=String(raw||'').trim().toLowerCase(),c=COUPONS[code];if(!c)return {error:'invalid'};if(state.coupons.includes(code))return {error:'used'};state.coupons.push(code);state.tickets+=c.tickets||0;state.gold+=c.gold||0;state.heroPicks+=c.heroPicks||0;return {code,...c};}
 // 영웅 선택권: 원하는 학생을 영입합니다. 이미 있는 학생이면 돌파 +1, 각성석 +1.
 function pickHero(state,id){if(!(state.heroPicks>0)||!CHARACTERS.some(c=>c.id===id))return false;state.heroPicks--;const p=state.roster[id];if(p){p.stars=Math.min(5,p.stars+1);state.stones=(state.stones||0)+1;return {id,duplicate:true};}state.roster[id]=newProgress();return {id,duplicate:false};}
+// 장비 원정: 하루 한 번, 학생 1~3명을 보내 장비를 찾아옵니다. 파티 전투력이 권장치에 가까울수록 성공률이 올라갑니다.
+const EXPEDITIONS=[
+  {id:'forest',name:'속삭이는 숲',desc:'수련생도 다녀올 수 있는 가까운 숲. 흔한 장비가 주로 나와요.',cost:300,rec:1500,fatigue:10,items:1,ssr:.02,sr:.25,xp:30},
+  {id:'canyon',name:'화염 협곡',desc:'용암이 흐르는 협곡. 쓸 만한 SR 장비가 자주 보여요.',cost:700,rec:2400,fatigue:15,items:1,bonus:.5,ssr:.05,sr:.45,xp:45},
+  {id:'ruins',name:'잠든 고대 유적',desc:'고대 기사단의 유적. 장비 2개를 노릴 수 있어요.',cost:1200,rec:3400,fatigue:20,items:2,ssr:.10,sr:.50,xp:60},
+  {id:'abyss',name:'별의 심연',desc:'별빛이 가라앉은 심연. 원정 전용 SSR 장비와 각성석이 잠들어 있어요.',cost:2000,rec:4800,fatigue:25,items:2,bonus:.4,ssr:.20,sr:.55,xp:80,stone:.5,exclusive:.35}
+];
+const partyPower=(state,ids)=>ids.reduce((v,id)=>v+unitPower(stats(id,state.roster[id],unitBonus(state,id))),0);
+const expeditionChance=(state,zone,ids)=>Math.max(.15,Math.min(.95,partyPower(state,ids)/zone.rec*.8));
+function canExpedition(state,zoneId,ids){const z=EXPEDITIONS.find(e=>e.id===zoneId);if(!z)return 'zone';if(state.expeditionDay===state.day)return 'today';if(!ids.length||ids.length>3||new Set(ids).size!==ids.length||ids.some(id=>!state.roster[id]))return 'party';if(ids.some(id=>state.roster[id].fatigue>=80))return 'tired';if(state.gold<z.cost)return 'gold';return '';}
+function runExpedition(state,zoneId,ids,rng=Math.random){if(canExpedition(state,zoneId,ids))return null;const z=EXPEDITIONS.find(e=>e.id===zoneId),chance=expeditionChance(state,z,ids),ok=rng()<chance;state.gold-=z.cost;state.expeditionDay=state.day;const items=[],notes=[];let stones=0;
+  ids.forEach(id=>{const p=state.roster[id];p.fatigue=clamp100(p.fatigue+z.fatigue+(ok?0:10));p.xp+=ok?z.xp:Math.round(z.xp/2);levelUp(p);});
+  if(ok){let n=z.items+(z.bonus&&rng()<z.bonus?1:0);for(let i=0;i<n;i++){const ex=z.exclusive&&rng()<z.exclusive,r=ex?'SSR':rollRarity(rng,z.ssr,z.sr),pool=ITEMS.filter(it=>it.rarity===r&&(ex?it.expedition:!it.expedition)),def=pick(pool,rng);state.items.push({uid:state.itemSeq++,id:def.id});items.push(def.id);}if(z.stone&&rng()<z.stone){stones=1;state.stones=(state.stones||0)+1;}}
+  else{const def=grantItem(state,'R',rng);items.push(def.id);notes.push('후퇴하며 겨우 장비 하나를 챙겼어요.');}
+  const log={zone:z.id,ok,party:[...ids],items,stones,day:state.day,season:state.season,chance:Math.round(chance*100)};state.expeditions.unshift(log);state.expeditions=state.expeditions.slice(0,8);
+  addNews(state,'원정',`${z.name} 원정 ${ok?'성공':'실패'} · 장비 ${items.length}개${stones?' · 각성석 +1':''}`);return {...log,notes};}
 function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<180||p.fatigue>=90) return false; state.gold-=180; p[type]+=(type==='speed'?3:4)+lvl;p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
 function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
 function rest(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
@@ -902,7 +986,7 @@ function resolveEvent(state,index,rng=Math.random){
   if(fx.scholar){const pts=leagueTable(state).find(r=>r.key==='AST').pts,g=pts*60;state.gold+=g;notes.push(`장학금 ${g} 골드`);}
   if(p){if(fx.xp){p.xp+=fx.xp;levelUp(p);}if(fx.fatigue)p.fatigue=clamp100(p.fatigue+fx.fatigue);if(fx.morale){p.morale=clamp100(p.morale+fx.morale);if(fx.morale>0&&!bond)p.affinity=Math.min(100,p.affinity+3);}if(fx.affinity)p.affinity=Math.min(100,p.affinity+fx.affinity);}
   all.forEach(q=>{if(fx.allMorale)q.morale=clamp100(q.morale+fx.allMorale);if(fx.allFatigue)q.fatigue=clamp100(q.fatigue+fx.allFatigue);if(fx.allXp){q.xp+=fx.allXp;levelUp(q);}});
-  if(fx.item){const def=grantItem(state,rollRarity(rng),rng);notes.push(`${def.rarity} 장비 「${def.name}」 획득`);}
+  if(fx.item){const def=grantItem(state,['R','SR','SSR'].includes(fx.item)?fx.item:rollRarity(rng),rng);notes.push(`${def.rarity} 장비 「${def.name}」 획득`);}
   const name=CHARACTERS.find(c=>c.id===pe.target)?.name;
   if(bond){p.chapter++;notes.push(`인연 ${p.chapter}장 완료 · 능력치 +${p.chapter*2}%`);}
   const summary=bond?`${name} · ${ev.title} — ${notes.join(', ')}`:`${ev.title} · ${choice.label}${notes.length?' — '+notes.join(', '):''}`;
@@ -1563,7 +1647,7 @@ const torresAdded=grantTorres(state);
 const ui={page:'home',battle:null,battleSpeed:1,paused:false,animation:0,lastFrame:0,uiTick:0,sound:false,audioCtx:null,filter:'전체',selectedSlot:null,modalId:null,drag:null,dragMoved:false,lastHitSfx:0};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], fmt=n=>Math.round(n).toLocaleString('ko-KR');
 const char=id=>CHARACTERS.find(c=>c.id===id), opponent=()=>currentOpponent(state);
-const paths={gift:'M3 8h18v5H3ZM5 13v8h14v-8M12 8v13M12 8C10 4 6 4 6 6.5S12 8 12 8s6-1 6-1.5S14 4 12 8',home:'M3 10 12 3l9 7v11h-6v-7H9v7H3Z',units:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M16 3a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',tactics:'M4 4h5v5H4z M15 15h5v5h-5z M6 9v8h9 M15 4h5v5h-5z M9 6h6',training:'m6 4 14 14 M4 6l2-2 M18 20l2-2 M2 8l6-6 M16 22l6-6 M8 20l12-12 M6 18l4 4 M18 6l4 4',scout:'m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z',arena:'m4 3 7 7-3 3-7-7V3h3Z M20 3l-7 7 3 3 7-7V3h-3Z M14 15l7 7 M10 15l-7 7 M12 17l5-5 M7 12l5 5',records:'M4 20V10h4v10 M10 20V4h4v16 M16 20v-7h4v7',bell:'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4',arrow:'M4 12h16 M14 6l6 6-6 6',chevron:'m9 5 7 7-7 7',coin:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0 M14 8h-4v8h4 M10 12h4',gem:'m3 8 4-5h10l4 5-9 13L3 8Z M3 8h18 M7 3l5 18 5-18',star:'m12 3 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z',shield:'m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6Z',moon:'M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z',help:'M12 17v.1 M9 8a3 3 0 1 1 4 3c-1 .5-1 1-1 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',volume:'M11 4 6 8H2v8h4l5 4V4Z M15 8a6 6 0 0 1 0 8 M18 5a10 10 0 0 1 0 14',calendar:'M4 5h16v16H4Z M7 2v6 M17 2v6 M4 11h16',check:'m5 12 4 4L19 6',close:'m6 6 12 12 M6 18 18 6',heart:'M20 5c-4-4-8 1-8 1s-4-5-8-1 0 9 8 15c8-6 12-11 8-15Z',book:'M12 5C8 2 3 3 3 3v16s5-1 9 2c4-3 9-2 9-2V3s-5-1-9 2v16',flag:'M5 22V3c5-5 9 5 15 0v10c-6 5-10-5-15 0',play:'m8 4 12 8-12 8Z',pause:'M8 4v16 M16 4v16',elements:'M12 3 21 18H3Z M12 9v4 M12 16v.1',academy:'M3 21h18 M5 21V10l7-6 7 6v11 M9 21v-6h6v6 M12 4V2',settings:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2'};
+const paths={expedition:'M12 2 4 22l8-5 8 5ZM12 2v15',gift:'M3 8h18v5H3ZM5 13v8h14v-8M12 8v13M12 8C10 4 6 4 6 6.5S12 8 12 8s6-1 6-1.5S14 4 12 8',home:'M3 10 12 3l9 7v11h-6v-7H9v7H3Z',units:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M16 3a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',tactics:'M4 4h5v5H4z M15 15h5v5h-5z M6 9v8h9 M15 4h5v5h-5z M9 6h6',training:'m6 4 14 14 M4 6l2-2 M18 20l2-2 M2 8l6-6 M16 22l6-6 M8 20l12-12 M6 18l4 4 M18 6l4 4',scout:'m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z',arena:'m4 3 7 7-3 3-7-7V3h3Z M20 3l-7 7 3 3 7-7V3h-3Z M14 15l7 7 M10 15l-7 7 M12 17l5-5 M7 12l5 5',records:'M4 20V10h4v10 M10 20V4h4v16 M16 20v-7h4v7',bell:'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4',arrow:'M4 12h16 M14 6l6 6-6 6',chevron:'m9 5 7 7-7 7',coin:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0 M14 8h-4v8h4 M10 12h4',gem:'m3 8 4-5h10l4 5-9 13L3 8Z M3 8h18 M7 3l5 18 5-18',star:'m12 3 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z',shield:'m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6Z',moon:'M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z',help:'M12 17v.1 M9 8a3 3 0 1 1 4 3c-1 .5-1 1-1 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',volume:'M11 4 6 8H2v8h4l5 4V4Z M15 8a6 6 0 0 1 0 8 M18 5a10 10 0 0 1 0 14',calendar:'M4 5h16v16H4Z M7 2v6 M17 2v6 M4 11h16',check:'m5 12 4 4L19 6',close:'m6 6 12 12 M6 18 18 6',heart:'M20 5c-4-4-8 1-8 1s-4-5-8-1 0 9 8 15c8-6 12-11 8-15Z',book:'M12 5C8 2 3 3 3 3v16s5-1 9 2c4-3 9-2 9-2V3s-5-1-9 2v16',flag:'M5 22V3c5-5 9 5 15 0v10c-6 5-10-5-15 0',play:'m8 4 12 8-12 8Z',pause:'M8 4v16 M16 4v16',elements:'M12 3 21 18H3Z M12 9v4 M12 16v.1',academy:'M3 21h18 M5 21V10l7-6 7 6v11 M9 21v-6h6v6 M12 4V2',settings:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2'};
 function icon(name,size=20){return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name]||paths.star}"/></svg>`;}
 function save(){try{localStorage.setItem(STORAGE,JSON.stringify(state));}catch{toast('저장 공간을 사용할 수 없습니다. 현재 플레이는 계속할 수 있어요.');}}
 function toast(msg){$('#toast').textContent=msg;$('#toast').classList.add('visible');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').classList.remove('visible'),3200);}
@@ -1584,7 +1668,7 @@ function moralePill(m,short=false){const k=moraleKey(m);return `<span class="mor
 function formBadges(form){return `<span class="form-badges">${form.slice(-5).map(f=>`<i class="f-${f}">${f==='W'?'승':f==='D'?'무':'패'}</i>`).join('')||'<small>기록 없음</small>'}</span>`;}
 function leagueTableHTML(rows,compact=false,div=null){return `<div class="table-scroll"><table class="league-table"><thead><tr><th>#</th><th>학교</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th>${compact?'':'<th>최근</th>'}</tr></thead><tbody>${rows.map((r,i)=>{const t=teamInfo(r.key),gd=r.gf-r.ga,zone=div===2&&i<PROMOTE?'promo':div===1&&i>=rows.length-PROMOTE?'releg':'';return `<tr class="${r.key==='AST'?'mine':''} ${i<3?'podium':''} ${zone}"><td class="pos">${i+1}</td><td class="team-cell"><i class="team-dot" style="--crest:${t.color}">${t.short}</i><span>${t.name}</span></td><td>${r.w+r.d+r.l}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${gd>0?'+':''}${gd}</td><td class="pts">${r.pts}</td>${compact?'':`<td>${formBadges(r.form)}</td>`}</tr>`;}).join('')}</tbody></table></div>${div?`<p class="zone-legend">${div===2?`<i class="promo"></i> 상위 ${PROMOTE}팀 1부 승격`:`<i class="releg"></i> 하위 ${PROMOTE}팀 2부 강등`}</p>`:''}`;}
 function boardCard(compact=false){const b=state.board,c=b.confidence;return `<section class="panel board-card ${compact?'compact':''}"><div class="panel-heading"><h2>${icon('flag',16)} 이사회</h2><span class="subtle-label">BOARD</span></div><div class="board-goal"><span>이번 학기 목표</span><b>${b.goal?.text||'-'}</b><small>예상 순위 ${b.goal?.expected??'-'}위 · 현재 ${rankText()}</small></div><div class="board-meter"><span>신뢰도 <b>${c}</b> · ${boardMood(c)}</span><div><i class="${c>=60?'good':c>=40?'mid':c>=20?'low':'bad'}" style="width:${c}%"></i></div></div><div class="board-budget">${icon('coin',14)} 경기당 운영비 <b>${fmt(b.budget)} G</b>${b.lastChance?'<span class="warn">마지막 기회 사용함</span>':''}</div></section>`;}
-function itemCard(d,foot){return `<div class="panel item-card ${d.rarity}"><div class="item-top"><span class="item-glyph">${d.slot==='weapon'?'⚔':'✦'}</span><span class="rarity ${d.rarity}">${d.rarity}</span></div><b>${d.name}</b><small>${d.slot==='weapon'?'무기':'장신구'}</small><p>${d.desc}</p>${foot}</div>`;}
+function itemCard(d,foot){return `<div class="panel item-card ${d.rarity}"><div class="item-top"><span class="item-glyph">${{weapon:'⚔',armor:'⛨',charm:'✦'}[d.slot]}</span><span class="rarity ${d.rarity}">${d.rarity}</span></div><b>${d.name}</b><small>${{weapon:'무기',armor:'방어구',charm:'장신구'}[d.slot]}${d.expedition?' · 원정 전용':''}</small><p>${d.desc}</p>${foot}</div>`;}
 function paint(root=document){root.querySelectorAll('[data-character]').forEach(cv=>drawPortrait(cv,char(cv.dataset.character)));if(root.querySelector('#academy-art'))academy(root.querySelector('#academy-art'));}
 function showModal(content,wide=false){$('#modal-root').innerHTML=`<div class="modal-backdrop"><section class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-label="아스트라 상세 정보" tabindex="-1"><button class="modal-close icon-btn" data-action="close" aria-label="닫기">${icon('close',22)}</button>${content}</section></div>`;paint($('#modal-root'));$('.modal').focus();document.body.style.overflow='hidden';}
 function closeModal(){$('#modal-root').innerHTML='';document.body.style.overflow='';ui.selectedSlot=null;ui.modalId=null;if(ui.timeoutOpen){ui.timeoutOpen=false;ui.paused=ui.pausedBefore;}}
@@ -1597,7 +1681,7 @@ function matchupPanel(oppIds,compact=false){const ours=state.squad.map(elementOf
 
 // 상단 바와 사이드바
 
-const navs=[['home','아카데미 홈'],['units','선수단 관리'],['tactics','전술 연구실'],['elements','속성 상성표'],['training','훈련 센터'],['academy','아카데미 시설'],['scout','학생 모집'],['arena','아카데미 리그'],['records','기록실']];
+const navs=[['home','아카데미 홈'],['units','선수단 관리'],['tactics','전술 연구실'],['elements','속성 상성표'],['training','훈련 센터'],['academy','아카데미 시설'],['expedition','장비 원정'],['scout','학생 모집'],['arena','아카데미 리그'],['records','기록실']];
 function header(){return `<header class="topbar"><div class="breadcrumb">아스트라 아카데미 <span>/</span> <strong>${navs.find(n=>n[0]===ui.page)[1]}</strong></div><div class="top-actions">${dateChip()}<div class="currency gold">${icon('coin',17)}<b>${fmt(state.gold)}</b></div><div class="currency stones" title="각성석">◆<b>${state.stones||0}</b></div><div class="currency gems">${icon('gem',17)}<b>${fmt(state.gems)}</b><button data-action="nav" data-page="scout" aria-label="학생 모집">+</button></div><span class="top-divider"></span><button class="icon-btn coupon-btn" data-action="coupon" title="쿠폰" aria-label="쿠폰 입력">${icon('gift',18)}${state.heroPicks>0?'<i class="notice-dot"></i>':''}</button><button class="icon-btn" data-action="sound" title="효과음 ${ui.sound?'끄기':'켜기'}" aria-label="효과음 ${ui.sound?'끄기':'켜기'}">${icon('volume',18)}${ui.sound?'':'<i class="mute-dot"></i>'}</button><button class="avatar" data-action="help" aria-label="코치 가이드">C</button>${continueButton()}</div></header>`;}
 function sidebar(){return `<aside class="sidebar"><a class="brand" href="#home" data-action="nav" data-page="home"><div class="brand-symbol">✧</div><div><b>ASTRA</b><span>ACADEMY · TACTICS</span></div></a><div class="academy-select"><div class="small-crest">A</div><div><strong>아스트라 아카데미</strong><small><i></i> 아카데미 리그 참가 중</small></div>${icon('chevron',14)}</div><div class="nav-caption">ACADEMY MANAGEMENT</div><nav>${navs.map(([id,name],i)=>`${id==='arena'?'<div class="nav-caption second">COMPETITION</div>':''}<button aria-label="${name}" class="nav-item ${ui.page===id?'active':''}" data-action="nav" data-page="${id}">${icon(id)}<span>${name}</span>${id==='scout'?'<span class="nav-new">NEW</span>':''}${id==='units'&&Object.values(state.roster).some(p=>pendingTraits(p))?'<span class="nav-new">특성</span>':''}${ui.page===id?'<i></i>':''}</button>`).join('')}</nav><div class="sidebar-bottom"><div class="season-card"><div class="season-icon">${icon('flag',20)}</div><div><b>제 ${state.season}학기 · ${state.division}부 리그</b><span>${rankText()} · 승점 ${myRow().pts}</span></div><div class="season-progress"><i style="width:${state.slot/SCHEDULE.length*100}%"></i></div><small>시즌 일정 ${state.slot} / ${SCHEDULE.length} 경기</small></div><button class="nav-item guide" data-action="help">${icon('help',18)}<span>코치 가이드</span>${icon('chevron',14)}</button><div class="sidebar-foot"><span class="online-dot"></span> 로컬 저장 활성화 <span>v2.0</span></div></div></aside>`;}
 function dateChip(){return `<div class="date-chip">${icon('calendar',15)}<span>${state.season}학기 ${state.day}일차</span><b class="${isMatchDay(state)?'today':''}">${isMatchDay(state)?'경기일':'D-'+daysToMatch()}</b></div>`;}
@@ -1739,8 +1823,8 @@ function vnSkip(){const v=ui.vn;if(!v||v.phase!=='read')return;v.i=v.segs.length
 
 // 캐릭터 도감, 장비, 이벤트, 시즌 결과 등 모달
 
-function growthPanel(id){const p=state.roster[id];if(!p)return '';const pend=pendingTraits(p);return `<section class="ornate-panel growth-panel"><h3 class="parchment-title">성장 & 장비</h3><div class="growth-row"><div class="morale-meter"><span>사기 ${p.morale}</span><div><i class="${moraleKey(p.morale)}" style="width:${p.morale}%"></i></div>${moralePill(p.morale)}</div><div class="career"><span>출전<b>${p.apps}</b></span><span>평균 평점<b>${avgRating(p)}</b></span><span>MVP<b>${p.mvp}</b></span><span>처치<b>${p.kills}</b></span></div></div><div class="trait-block"><span class="skill-label">특성 · Lv.3 / 6 / 9에 하나씩 해금</span><div class="trait-list">${p.traits.map(t=>`<span class="trait-chip"><b>${traitDef(t).name}</b><small>${traitDef(t).desc}</small></span>`).join('')||(pend?'':'<small class="muted-note">Lv.3이 되면 첫 특성을 고를 수 있어요.</small>')}</div>${pend?`<div class="trait-choices"><b>✦ 새 특성을 하나 선택하세요</b>${traitChoices(id,p).map(t=>`<button class="option-card" data-action="trait" data-id="${id}" data-trait="${t.id}"><span class="radio-dot"></span><div><b>${t.name}</b><p>${t.desc}</p></div></button>`).join('')}</div>`:''}</div>${bondSection(id,p)}${awakenBlock(id,p)}<div class="gear-slots">${[['weapon','무기'],['charm','장신구']].map(([slot,label])=>{const it=state.items.find(i=>i.uid===p.gear[slot]),d=it&&itemDef(it.id);return `<button class="gear-slot ${d?d.rarity:''}" data-action="gear" data-id="${id}" data-slot="${slot}"><span>${label}</span>${d?`<b>${d.name}</b><small>${d.desc}</small>`:'<b class="empty">비어 있음</b><small>눌러서 장착</small>'}</button>`;}).join('')}</div></section>`;}
-function gearModal(id,slot){const p=state.roster[id],items=state.items.filter(it=>itemDef(it.id).slot===slot);showModal(`<span class="eyebrow">EQUIPMENT · ${slot==='weapon'?'무기':'장신구'}</span><h2>${char(id).name}의 장비</h2><p class="modal-intro">장착할 장비를 고르세요. 다른 학생이 쓰던 장비는 자동으로 해제됩니다.</p><div class="gear-picker">${items.map(it=>{const d=itemDef(it.id),who=equippedBy(state,it.uid);return `<button class="option-card ${p.gear[slot]===it.uid?'selected':''}" data-action="equip" data-id="${id}" data-uid="${it.uid}"><span class="rarity ${d.rarity}">${d.rarity}</span><div><b>${d.name}</b><p>${d.desc}${who&&who!==id?` · ${char(who).shortName||char(who).name} 장착 중`:''}</p></div>${p.gear[slot]===it.uid?icon('check',18):''}</button>`;}).join('')||'<p class="muted-note">맞는 장비가 없어요. 아카데미 시설의 상점에서 구할 수 있습니다.</p>'}</div><div class="modal-actions">${p.gear[slot]?`<button class="btn" data-action="unequip" data-id="${id}" data-slot="${slot}">장착 해제</button>`:''}<button class="btn primary" data-action="character" data-id="${id}">도감으로 돌아가기</button></div>`);}
+function growthPanel(id){const p=state.roster[id];if(!p)return '';const pend=pendingTraits(p);return `<section class="ornate-panel growth-panel"><h3 class="parchment-title">성장 & 장비</h3><div class="growth-row"><div class="morale-meter"><span>사기 ${p.morale}</span><div><i class="${moraleKey(p.morale)}" style="width:${p.morale}%"></i></div>${moralePill(p.morale)}</div><div class="career"><span>출전<b>${p.apps}</b></span><span>평균 평점<b>${avgRating(p)}</b></span><span>MVP<b>${p.mvp}</b></span><span>처치<b>${p.kills}</b></span></div></div><div class="trait-block"><span class="skill-label">특성 · Lv.3 / 6 / 9에 하나씩 해금</span><div class="trait-list">${p.traits.map(t=>`<span class="trait-chip tier-${traitDef(t).tier}"><b><em class="tier-tag">${TRAIT_TIERS[traitDef(t).tier]}</em> ${traitDef(t).name}</b><small>${traitDef(t).desc}</small></span>`).join('')||(pend?'':'<small class="muted-note">Lv.3이 되면 첫 특성을 고를 수 있어요.</small>')}</div>${pend?`<div class="trait-choices"><b>✦ 새 특성을 하나 선택하세요 <small>후보 ${traitOdds(id,p).count}개 · 레전더리 확률 ${(traitOdds(id,p).legend*100).toFixed(1)}%</small></b>${traitChoices(id,p).map(t=>`<button class="option-card tier-${t.tier}" data-action="trait" data-id="${id}" data-trait="${t.id}"><span class="radio-dot"></span><div><b><em class="tier-tag">${TRAIT_TIERS[t.tier]}</em> ${t.name}</b><p>${t.desc}</p></div></button>`).join('')}</div>`:''}</div>${bondSection(id,p)}${awakenBlock(id,p)}<div class="gear-slots">${[['weapon','무기'],['armor','방어구'],['charm','장신구']].map(([slot,label])=>{const it=state.items.find(i=>i.uid===p.gear[slot]),d=it&&itemDef(it.id);return `<button class="gear-slot ${d?d.rarity:''}" data-action="gear" data-id="${id}" data-slot="${slot}"><span>${label}</span>${d?`<b>${d.name}</b><small>${d.desc}</small>`:'<b class="empty">비어 있음</b><small>눌러서 장착</small>'}</button>`;}).join('')}</div></section>`;}
+function gearModal(id,slot){const p=state.roster[id],items=state.items.filter(it=>itemDef(it.id).slot===slot);showModal(`<span class="eyebrow">EQUIPMENT · ${SLOT_LABEL[slot]}</span><h2>${char(id).name}의 장비</h2><p class="modal-intro">장착할 장비를 고르세요. 다른 학생이 쓰던 장비는 자동으로 해제됩니다.</p><div class="gear-picker">${items.map(it=>{const d=itemDef(it.id),who=equippedBy(state,it.uid);return `<button class="option-card ${p.gear[slot]===it.uid?'selected':''}" data-action="equip" data-id="${id}" data-uid="${it.uid}"><span class="rarity ${d.rarity}">${d.rarity}</span><div><b>${d.name}</b><p>${d.desc}${who&&who!==id?` · ${char(who).shortName||char(who).name} 장착 중`:''}</p></div>${p.gear[slot]===it.uid?icon('check',18):''}</button>`;}).join('')||'<p class="muted-note">맞는 장비가 없어요. 아카데미 시설의 상점에서 구할 수 있습니다.</p>'}</div><div class="modal-actions">${p.gear[slot]?`<button class="btn" data-action="unequip" data-id="${id}" data-slot="${slot}">장착 해제</button>`:''}<button class="btn primary" data-action="character" data-id="${id}">도감으로 돌아가기</button></div>`);}
 function eventModal(){const pe=state.pendingEvent,ev=eventDef(pe.id,pe.target,state);if(pe.kind==='duo'||pe.kind==='bond'){closeModal();return openStory(pe);}const c=char(pe.target),bond=pe.kind==='bond',p=state.roster[pe.target];showModal(`<div class="event-modal ${bond?'bond':''}"><span class="eyebrow">${bond?`BOND STORY · ${c.shortName||c.name} · ${p.chapter+1}장`:`ACADEMY EVENT · ${state.season}학기 ${state.day}일차`}</span><div class="event-head">${portrait(c,'',104,124)}<div><h2>${ev.title}</h2><p class="modal-intro">${bond?ev.text:ev.text(c.shortName||c.name)}</p></div></div>${bond?`<p class="bond-note">♥ 이 장을 마치면 ${c.shortName||c.name}의 체력·공격·방어가 영구히 +2% 오릅니다.</p>`:''}<div class="event-choices">${ev.choices.map((ch,i)=>{const ok=canChoose(state,ch.fx);return `<button class="option-card" data-action="event-choice" data-index="${i}" ${ok?'':'disabled'}><span class="radio-dot"></span><div><b>${ch.label}</b><p>${ch.hint}${ok?'':' · 골드 부족'}</p></div></button>`;}).join('')}</div></div>`);}
 function seasonModal(){const s=state.seasonSummary;if(!s)return;const it=s.item&&itemDef(s.item),div=s.division??1;showModal(`<div class="season-modal"><span class="eyebrow">SEASON ${s.season} · ${div}부 리그 최종 순위</span><div class="season-rank rank-${Math.min(s.rank,4)}"><b>${s.rank===1?'♛ ':''}${s.rank}위</b><span>${s.moved==='up'?'1부 리그 승격! 이제 진짜 강호들과 맞붙습니다.':s.moved==='down'?'2부 리그로 강등되었습니다. 다시 올라가야 합니다.':s.rank===1?'리그 우승! 아스트라의 이름이 왕국에 울려 퍼집니다.':s.rank<=3?'시상대에 올랐습니다.':'다음 학기에는 더 높이!'}</span></div>${s.moved?`<div class="move-banner ${s.moved}">${s.moved==='up'?'▲ PROMOTED · 1부 승격':'▼ RELEGATED · 2부 강등'}</div>`:''}<p class="modal-intro">${s.w}승 ${s.d}무 ${s.l}패 · 승점 ${s.pts} · 우승 ${teamInfo(s.champion).name}${s.cupResult?` · 아스트라 컵 ${s.cupResult}${s.cupChampion&&s.cupChampion!=='AST'?` (우승 ${teamInfo(s.cupChampion).name.split(' ')[0]})`:''}`:''}</p>${leagueTableHTML(s.table,true,div)}${s.goal?`<div class="board-verdict ${s.met?'met':'fail'}"><b>이사회 평가 · ${s.met?'목표 달성':'목표 미달'}</b><span>목표 ${s.goal} · 신뢰도 ${s.delta>0?'+':''}${s.delta} → ${s.confidence} · 운영비 ${s.budgetDelta>=0?'+':''}${s.budgetDelta} G → ${fmt(s.budget)} G</span></div>`:''}<div class="season-reward">${icon('coin',16)} ${fmt(s.gold)} 골드 · ${icon('gem',16)} ${fmt(s.gems)} 크리스탈${it?` · <span class="rarity ${it.rarity}">${it.rarity}</span> ${it.name}`:''}${s.stones?` · ◆ 각성석 ${s.stones}`:''}</div><button class="btn primary full" data-action="season-ack">제 ${s.season+1}학기 시작하기 ${icon('arrow',16)}</button></div>`,true);}
 function characterModal(id){
@@ -1795,7 +1879,7 @@ function ambient(){if(window.matchMedia('(prefers-reduced-motion: reduce)').matc
 // 대화창이 닫힌 뒤: 면담이면 도감으로 돌아가고, 이야기였다면 화면을 갱신합니다.
 function afterDialogue(v){render();if(v.kind==='talk'&&v.returnTo)characterModal(v.returnTo);}
 function continueDay(){if(state.sacked){sackedModal();return;}if(state.pendingEvent){eventModal();return;}if(isMatchDay(state)){ui.page='arena';closeModal();render();window.scrollTo(0,0);return;}advanceDay(state);save();render();if(state.pendingEvent)eventModal();else toast(`${state.day}일차 아침이 밝았어요.${isMatchDay(state)?' 오늘은 경기일입니다!':` 경기까지 ${daysToMatch()}일.`}`);}
-function render(){const pages={home,units,tactics,elements,training,academy:facilities,scout:scouting,arena,records},entering=ui.renderedPage!==ui.page,keepScroll=!entering?$('.tactics-options')?.scrollTop:0;ui.renderedPage=ui.page;$('#app').innerHTML=`${sidebar()}<div class="app-main">${header()}<main class="${entering?'page-enter':''}">${pages[ui.page]()}</main></div>`;paint();tweenCurrency();fitTactics(keepScroll);if(ui.page==='arena'&&ui.battle){updateBattleUI();drawBattle($('#battle-canvas'),ui.battle,performance.now()/1000);}}
+function render(){const pages={home,units,tactics,elements,training,academy:facilities,expedition,scout:scouting,arena,records},entering=ui.renderedPage!==ui.page,keepScroll=!entering?$('.tactics-options')?.scrollTop:0;ui.renderedPage=ui.page;$('#app').innerHTML=`${sidebar()}<div class="app-main">${header()}<main class="${entering?'page-enter':''}">${pages[ui.page]()}</main></div>`;paint();tweenCurrency();fitTactics(keepScroll);if(ui.page==='arena'&&ui.battle){updateBattleUI();drawBattle($('#battle-canvas'),ui.battle,performance.now()/1000);}}
 function syncPause(){const btn=$('[data-action=pause]');if(btn)btn.innerHTML=`${icon(ui.paused?'play':'pause',15)} ${ui.paused?'재개':'일시정지'}`;}
 function startBattle(){if(ui.battle&&!ui.battle.done)return;if(!isMatchDay(state)){toast(`경기일까지 ${daysToMatch()}일 남았어요.`);return;}if(state.sacked){sackedModal();return;}ui.battle=new Battle(state);ui.battle.intro=2.4;ui.battle.count=null;ui.paused=false;ui.battleSpeed=1;render();ui.lastFrame=performance.now();cancelAnimationFrame(ui.animation);ui.animation=requestAnimationFrame(frame);beep();}
 function frame(now){if(!ui.battle)return;const elapsed=Math.min(.1,(now-ui.lastFrame)/1000);ui.lastFrame=now;if(ui.battle.intro>0){if(!ui.paused)ui.battle.intro=Math.max(0,ui.battle.intro-elapsed);const n=ui.battle.intro>.6?Math.ceil((ui.battle.intro-.6)/.6):0;if(n!==ui.battle.count){ui.battle.count=n;playSfx([n?'count':'fight']);}}else if(!ui.paused&&!ui.battle.done){let remain=elapsed*ui.battleSpeed;while(remain>0){const step=Math.min(.05,remain);ui.battle.step(step);remain-=step;}if(ui.battle.done)finishBattle();playSfx(ui.battle.sfx.splice(0));}const cv=$('#battle-canvas');if(cv)drawBattle(cv,ui.battle,now/1000);if(now-ui.uiTick>180){updateBattleUI();ui.uiTick=now;}if(!ui.battle.done||ui.battle.shake>0)ui.animation=requestAnimationFrame(frame);if(ui.battle.done)ui.battle.shake=Math.max(0,ui.battle.shake-elapsed*1.6);}
@@ -1810,6 +1894,9 @@ document.addEventListener('click',e=>{
  if(a==='nav'){if(ui.battle&&!ui.battle.done&&el.dataset.page!=='arena'){toast('진행 중인 경기를 마친 뒤 이동할 수 있어요. 결과까지 진행을 이용해 주세요.');return;}ui.page=el.dataset.page;closeModal();render();window.scrollTo(0,0);}
  if(a==='help')help();if(a==='close'){const wasTimeout=ui.timeoutOpen;closeModal();if(wasTimeout)syncPause();}if(a==='character')characterModal(el.dataset.id);
  if(a==='filter'){ui.filter=el.dataset.filter;render();}
+ if(a==='exp-zone'){ui.expZone=el.dataset.id;render();return;}
+ if(a==='exp-pick'){const id=el.dataset.id,p=ui.expParty||=[];ui.expParty=p.includes(id)?p.filter(x=>x!==id):p.length<3?[...p,id]:p;if(ui.expParty===p&&!p.includes(id))toast('원정대는 최대 3명이에요.');render();return;}
+ if(a==='exp-go'){const r=runExpedition(state,ui.expZone,ui.expParty||[]);if(!r)return;save();render();beep(r.ok);showModal(expeditionResult(r),true);return;}
  if(a==='coupon'){showModal(couponModal());setTimeout(()=>$('#coupon-input')?.focus(),30);return;}
  if(a==='pick-hero'){const r=pickHero(state,el.dataset.id);if(!r)return;save();render();beep(true);const c=char(r.id);showModal(couponModal());toast(r.duplicate?`${c.name} 돌파 +1 · 각성석 +1`:`${c.name} 영입 완료! 아스트라에 오신 걸 환영해요.`);return;}
  if(a==='sound'){ui.sound=!ui.sound;$('.topbar').outerHTML=header();if(ui.sound)beep();toast(`효과음 ${ui.sound?'켜짐':'꺼짐'}`);}
