@@ -1115,9 +1115,10 @@ function decodeSave(code){try{let raw=String(code||'').trim();if(raw.startsWith(
 // 돌파: 중복으로 얻은 돌파 재료 1개로 레벨 제한 없이 바로 1단계씩 올립니다 (최대 5).
 const BREAKTHROUGH=[{desc:'체력·공격·방어 +7%'},{desc:'능력치 +7% · 특성 후보 등급 상승'},{desc:'능력치 +7% · 특성 슬롯 +1 (레벨 무관)'},{desc:'능력치 +7% · 레전더리 특성 확률 상승'},{desc:'능력치 +7% · 스킬 재사용 −10%'}];
 function breakthrough(state,id){const p=state.roster[id];if(!p||(p.copies||0)<1||(p.stars||0)>=BREAKTHROUGH.length)return false;p.copies--;p.stars=(p.stars||0)+1;addNews(state,'돌파',`${CHARACTERS.find(c=>c.id===id).name} ${p.stars}단계 돌파!`);return p.stars;}
-// 부상 확률: 평소 5%, 피로도에 비례해 최대 20%(피로 100). 면담에서 부상 암시가 나온 학생은 다음 경기 50%.
-const INJURY_BASE=.05, INJURY_MAX=.20, OMEN_RISK=.5, OMEN_CHANCE=.15;
-function injuryChance(p){if(!p||p.injury)return 0;if(p.injuryOmen)return OMEN_RISK;return INJURY_BASE+(INJURY_MAX-INJURY_BASE)*Math.max(0,Math.min(100,p.fatigue||0))/100;}
+// 부상 확률: 평소 3%, 피로 100에서 최대 50%. 피로의 세제곱으로 올라가서 피로가 꽤 쌓이기 전까지는 낮게 유지됩니다
+// (피로 50 → 약 9%, 70 → 약 19%, 90 → 약 37%). 면담에서 부상 암시가 나온 학생은 다음 경기 50%.
+const INJURY_BASE=.03, INJURY_MAX=.50, OMEN_RISK=.5, OMEN_CHANCE=.15;
+function injuryChance(p){if(!p||p.injury)return 0;if(p.injuryOmen)return OMEN_RISK;const f=Math.max(0,Math.min(100,p.fatigue||0))/100;return INJURY_BASE+(INJURY_MAX-INJURY_BASE)*f**3;}
 function buyConsumable(state,key){const c=CONSUMABLES.find(x=>x.id===key);if(!c||state.gold<c.price)return false;state.gold-=c.price;state.consumables[key]=(state.consumables[key]||0)+1;return c;}
 // 소모품 사용: 경험치 아이템은 훈련 횟수·피로와 상관없이 쓸 수 있고, 치료 아이템은 부상 중인 학생에게만 씁니다.
 function useConsumable(state,id,key){const c=CONSUMABLES.find(x=>x.id===key),p=state.roster[id];if(!c||!p||!(state.consumables[key]>0))return false;if(c.kind==='heal'&&!p.injury||c.kind==='fatigue'&&!p.fatigue||c.kind==='morale'&&p.morale>=100)return false;state.consumables[key]--;
