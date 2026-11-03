@@ -438,7 +438,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0;
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0;
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -584,12 +584,18 @@ function openBond(state,id){if(state.pendingEvent||!bondReady(state.roster[id]))
 function eventDef(id,target,state){if(id==='duo')return DUO_STORIES[target];if(id==='bond'){const p=state?.roster[target];return p&&BOND_STORIES[target]?.[p.chapter];}return EVENTS.find(e=>e.id===id);}
 
 function recruit(state, count, rng=Math.random) {
-  const cost=recruitCost(state);if (![1,10].includes(count)||state.gems<count*cost) return null;
-  state.gems-=count*cost; const results=[];
+  // 뽑기권이 충분하면 크리스탈 대신 뽑기권을 씁니다.
+  const cost=recruitCost(state),useTickets=(state.tickets||0)>=count;if (![1,10].includes(count)||(!useTickets&&state.gems<count*cost)) return null;
+  if(useTickets)state.tickets-=count;else state.gems-=count*cost; const results=[];
   for(let i=0;i<count;i++) { state.pity++; const roll=rng(); const rarity=state.pity>=50||roll<.03?'SSR':roll<.25?'SR':'R'; if(rarity==='SSR') state.pity=0; const pool=CHARACTERS.filter(c=>c.rarity===rarity); const c=pool[Math.floor(rng()*pool.length)]; const duplicate=!!state.roster[c.id];
     if(duplicate) { state.roster[c.id].stars=Math.min(5,state.roster[c.id].stars+1); state.gold+=150; state.stones=(state.stones||0)+1; } else state.roster[c.id]=newProgress(); results.push({id:c.id,duplicate});
   } return results;
 }
+// 쿠폰: 저장 데이터마다 한 번씩만 받을 수 있습니다.
+const COUPONS={welcome:{tickets:10000,gold:10000,label:'웰컴 쿠폰'},siu:{heroPicks:1,label:'SIUUU 영웅 선택권'}};
+function redeemCoupon(state,raw){const code=String(raw||'').trim().toLowerCase(),c=COUPONS[code];if(!c)return {error:'invalid'};if(state.coupons.includes(code))return {error:'used'};state.coupons.push(code);state.tickets+=c.tickets||0;state.gold+=c.gold||0;state.heroPicks+=c.heroPicks||0;return {code,...c};}
+// 영웅 선택권: 원하는 학생을 영입합니다. 이미 있는 학생이면 돌파 +1, 각성석 +1.
+function pickHero(state,id){if(!(state.heroPicks>0)||!CHARACTERS.some(c=>c.id===id))return false;state.heroPicks--;const p=state.roster[id];if(p){p.stars=Math.min(5,p.stars+1);state.stones=(state.stones||0)+1;return {id,duplicate:true};}state.roster[id]=newProgress();return {id,duplicate:false};}
 function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<180||p.fatigue>=90) return false; state.gold-=180; p[type]+=(type==='speed'?3:4)+lvl;p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
 function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
 function rest(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
