@@ -106,7 +106,31 @@ const CHEMISTRY = [
 ];
 
 // fx: gold, gems, xp(대상), fatigue(대상), morale(대상), allMorale, allFatigue, allXp, item(희귀도)
+// 소모품: 경험치 아이템과 부상 치료 아이템. 상점에서 사거나 이벤트로 얻습니다.
+const CONSUMABLES = [
+  { id:'xp_s', name:'경험의 물약', kind:'xp', xp:120, price:300, desc:'경험치 +120' },
+  { id:'xp_m', name:'숙련의 비약', kind:'xp', xp:400, price:900, desc:'경험치 +400' },
+  { id:'xp_l', name:'별빛 전술서', kind:'xp', xp:1000, price:2000, desc:'경험치 +1,000' },
+  { id:'heal_s', name:'응급 치료 키트', kind:'heal', heal:3, price:400, desc:'부상 회복 3일 단축' },
+  { id:'heal_l', name:'성녀의 치유약', kind:'heal', heal:99, price:1200, desc:'부상 즉시 완치' }
+];
+// 부상: 전투 후 학생마다 확률로 생깁니다. 경기에는 그대로 나갈 수 있지만 능력치가 내려갑니다.
+const INJURIES = [
+  { id:'minor', label:'경상', days:3, pen:.10, names:['발목 염좌','어깨 결림','손목 타박상','종아리 경련'] },
+  { id:'major', label:'중상', days:6, pen:.20, names:['근육 파열','갈비뼈 금','무릎 인대 손상','허리 염좌'] }
+];
+// 면담 중 부상 암시: 이 대사가 나오면 다음 경기 부상 확률이 50%가 됩니다.
+const OMEN_LINES = ['요즘 발목이 좀 시큰거려요… 별일 아니겠죠?','어제 훈련하다 어깨를 살짝 삐끗했어. 괜찮아, 아마도.','무릎이 조금 뻐근하네요. 경기 전까지는 낫겠죠.','손목이 좀 저려… 코치한테만 말하는 거야.','숨이 자꾸 차요. 몸이 무거운 느낌이에요.','허리가 살짝 결려요. 신경 쓰지 마세요, 진짜로요.'];
 const EVENTS = [
+  { id:'herbalist', title:'약초 상인의 방문', text:n=>`산 너머에서 온 약초 상인이 ${n} 학생에게 붕대와 연고를 권합니다.`, choices:[
+    { label:'치료 키트를 산다 (500 G)', hint:'골드 −500 · 응급 치료 키트 2개', fx:{gold:-500,consumable:{heal_s:2}} },
+    { label:'정중히 돌려보낸다', hint:'대상 사기 +2', fx:{morale:2} } ] },
+  { id:'manual', title:'서고 구석의 교본', text:n=>`${n} 학생이 서고 구석에서 손때 묻은 수련 교본을 찾아냈습니다.`, choices:[
+    { label:'훈련에 쓴다', hint:'숙련의 비약 1개', fx:{consumable:{xp_m:1}} },
+    { label:'도서관에 반납한다', hint:'크리스탈 +100', fx:{gems:100} } ] },
+  { id:'alumni', title:'졸업생의 선물 꾸러미', text:()=>'아스트라를 졸업한 선배가 후배들에게 선물 꾸러미를 보내왔습니다.', choices:[
+    { label:'감사히 받는다', hint:'경험의 물약 2개 · 응급 치료 키트 1개', fx:{consumable:{xp_s:2,heal_s:1}} },
+    { label:'후배들에게 편지를 쓴다', hint:'전원 사기 +3', fx:{allMorale:3} } ] },
   { id:'smith', title:'떠돌이 대장장이', text:n=>`정문 앞에 이름난 떠돌이 대장장이가 수레를 세웠습니다. ${n} 학생이 눈을 떼지 못하네요.`, choices:[
     { label:'장비를 맞춘다 (900 G)', hint:'골드 −900 · SR 장비 획득', fx:{gold:-900,item:'SR'} },
     { label:'단련법만 배운다', hint:'대상 경험치 +40', fx:{xp:40} } ] },
@@ -477,7 +501,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치';
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0);
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -510,6 +534,7 @@ function unitBonus(state,id){
   (p.traits||[]).forEach(t=>add(traitDef(t)?.mod||{}));
   Object.values(p.gear||{}).forEach(uid=>{const it=state.items?.find(i=>i.uid===uid);if(it)add(itemDef(it.id).mod);});
   if(state.squad.includes(id))activeChemistry(state).filter(c=>c.pair.includes(id)).forEach(c=>{const m=state.duos?.[duoKey(c)]?2:1;for(const k in c.mod)b[k]+=c.mod[k]*m;});
+  if(p.injury){const pen=p.injury.pen;b.hp-=pen;b.atk-=pen;b.def-=pen;b.speed-=Math.round(pen*30);}
   const morale=(p.morale??70)-70;b.atk+=morale/400;b.def+=morale/400;
   const bond=(p.chapter||0)*.02;b.hp+=bond;b.atk+=bond;b.def+=bond;
   return b;
@@ -634,7 +659,7 @@ function callCoach(text,c=COACH){const t=String(text??''),name=String(c.name||''
   const plain=title.endsWith('님')?coachAddress({name,title:title.slice(0,-1)}):who;
   return t.replace(/코치(님)?((?:이랑|으로|가|이|를|을|는|은|와|과|랑|로)(?![가-힣]))?/g,(m,nim,josa)=>{const w=nim?who:plain;if(!josa)return w;const last=w.charCodeAt(w.length-1),jong=last>=0xAC00&&last<=0xD7A3?(last-0xAC00)%28:0,pair=JOSA.find(p=>p.includes(josa));if(!pair)return w+josa;const pickB=pair[0]==='로'?jong>0&&jong!==8:jong>0;return w+pair[pickB?1:0];});}
 function voice(id,kind,seed=0){const lines=HERO_LORE[id]?.lines?.[kind];return lines?.length?callCoach(lines[Math.abs(Math.floor(seed))%lines.length]):'';}
-function talk(state,id){const p=state.roster[id],c=CHARACTERS.find(c=>c.id===id);if(!p||p.talked===state.day)return false;p.talked=state.day;p.affinity=Math.min(100,p.affinity+5);p.morale=clamp100(p.morale+2);const mood=p.morale<45?'tired':p.morale>=85?'happy':'talk',pool=[...(HERO_LORE[id]?.lines?.[mood]||[]),...(mood==='talk'?[c.quote]:[])];return callCoach(pick(pool.length?pool:[c.quote,...TALK_LINES],random(hash(id+'-'+state.season+'-'+state.day))));}
+function talk(state,id){const p=state.roster[id],c=CHARACTERS.find(c=>c.id===id);if(!p||p.talked===state.day)return false;const omenRoll=random(hash('omen-'+id+'-'+state.season+'-'+state.day))();if(!p.injury&&!p.injuryOmen&&omenRoll<OMEN_CHANCE){p.talked=state.day;p.injuryOmen=true;return callCoach(OMEN_LINES[Math.floor(omenRoll/OMEN_CHANCE*OMEN_LINES.length)%OMEN_LINES.length]);}p.talked=state.day;p.affinity=Math.min(100,p.affinity+5);p.morale=clamp100(p.morale+2);const mood=p.morale<45?'tired':p.morale>=85?'happy':'talk',pool=[...(HERO_LORE[id]?.lines?.[mood]||[]),...(mood==='talk'?[c.quote]:[])];return callCoach(pick(pool.length?pool:[c.quote,...TALK_LINES],random(hash(id+'-'+state.season+'-'+state.day))));}
 const duoKey=c=>c.pair.join('+');
 // 함께 선발이고 둘 다 호감도 30 이상인 케미 듀오 중, 아직 이야기를 보지 않은 쌍
 function duoReady(state){return CHEMISTRY.filter(c=>DUO_STORIES[duoKey(c)]&&!state.duos?.[duoKey(c)]&&c.pair.every(id=>state.squad.includes(id)&&(state.roster[id]?.affinity||0)>=30)).map(duoKey);}
@@ -676,9 +701,17 @@ function decodeSave(code){try{let raw=String(code||'').trim();if(raw.startsWith(
 // 돌파: 중복으로 얻은 돌파 재료 1개로 레벨 제한 없이 바로 1단계씩 올립니다 (최대 5).
 const BREAKTHROUGH=[{desc:'체력·공격·방어 +7%'},{desc:'능력치 +7% · 특성 후보 등급 상승'},{desc:'능력치 +7% · 특성 슬롯 +1 (레벨 무관)'},{desc:'능력치 +7% · 레전더리 특성 확률 상승'},{desc:'능력치 +7% · 스킬 재사용 −10%'}];
 function breakthrough(state,id){const p=state.roster[id];if(!p||(p.copies||0)<1||(p.stars||0)>=BREAKTHROUGH.length)return false;p.copies--;p.stars=(p.stars||0)+1;addNews(state,'돌파',`${CHARACTERS.find(c=>c.id===id).name} ${p.stars}단계 돌파!`);return p.stars;}
+// 부상 확률: 평소 5%, 피로도에 비례해 최대 20%(피로 100). 면담에서 부상 암시가 나온 학생은 다음 경기 50%.
+const INJURY_BASE=.05, INJURY_MAX=.20, OMEN_RISK=.5, OMEN_CHANCE=.15;
+function injuryChance(p){if(!p||p.injury)return 0;if(p.injuryOmen)return OMEN_RISK;return INJURY_BASE+(INJURY_MAX-INJURY_BASE)*Math.max(0,Math.min(100,p.fatigue||0))/100;}
+function buyConsumable(state,key){const c=CONSUMABLES.find(x=>x.id===key);if(!c||state.gold<c.price)return false;state.gold-=c.price;state.consumables[key]=(state.consumables[key]||0)+1;return c;}
+// 소모품 사용: 경험치 아이템은 훈련 횟수·피로와 상관없이 쓸 수 있고, 치료 아이템은 부상 중인 학생에게만 씁니다.
+function useConsumable(state,id,key){const c=CONSUMABLES.find(x=>x.id===key),p=state.roster[id];if(!c||!p||!(state.consumables[key]>0))return false;if(c.kind==='heal'&&!p.injury)return false;state.consumables[key]--;
+  if(c.kind==='xp'){const before=p.level;p.xp+=c.xp;levelUp(p);return {kind:'xp',xp:c.xp,levels:p.level-before,level:p.level};}
+  p.injury.days-=c.heal;if(p.injury.days<=0){p.injury=null;return {kind:'heal',cured:true};}return {kind:'heal',cured:false,days:p.injury.days};}
 function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<180||p.fatigue>=90) return false; state.gold-=180; p[type]+=(type==='speed'?3:4)+lvl;p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
 function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
-function rest(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
+function rest(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
 // 하루를 넘기고, 인연 이야기나 아카데미 이벤트가 생길 수 있습니다.
 function advanceDay(state,rng=Math.random){
   if(isMatchDay(state)||state.pendingEvent||state.sacked)return false;rest(state);
@@ -698,7 +731,7 @@ function resolveEvent(state,index,rng=Math.random){
   if(fx.scholar){const pts=leagueTable(state).find(r=>r.key==='AST').pts,g=pts*60;state.gold+=g;notes.push(`장학금 ${g} 골드`);}
   if(p){if(fx.xp){p.xp+=fx.xp;levelUp(p);}if(fx.fatigue)p.fatigue=clamp100(p.fatigue+fx.fatigue);if(fx.morale){p.morale=clamp100(p.morale+fx.morale);if(fx.morale>0&&!bond)p.affinity=Math.min(100,p.affinity+3);}if(fx.affinity)p.affinity=Math.min(100,p.affinity+fx.affinity);}
   all.forEach(q=>{if(fx.allMorale)q.morale=clamp100(q.morale+fx.allMorale);if(fx.allFatigue)q.fatigue=clamp100(q.fatigue+fx.allFatigue);if(fx.allXp){q.xp+=fx.allXp;levelUp(q);}});
-  if(fx.item){const def=grantItem(state,['R','SR','SSR'].includes(fx.item)?fx.item:rollRarity(rng),rng);notes.push(`${def.rarity} 장비 「${def.name}」 획득`);}
+  if(fx.consumable){Object.entries(fx.consumable).forEach(([k,n])=>{state.consumables[k]=(state.consumables[k]||0)+n;notes.push(`${CONSUMABLES.find(c=>c.id===k).name} +${n}`);});}if(fx.item){const def=grantItem(state,['R','SR','SSR'].includes(fx.item)?fx.item:rollRarity(rng),rng);notes.push(`${def.rarity} 장비 「${def.name}」 획득`);}
   const name=CHARACTERS.find(c=>c.id===pe.target)?.name;
   if(bond){p.chapter++;notes.push(`인연 ${p.chapter}장 완료 · 능력치 +${p.chapter*2}%`);}
   const summary=bond?`${name} · ${ev.title} — ${notes.join(', ')}`:`${ev.title} · ${choice.label}${notes.length?' — '+notes.join(', '):''}`;
@@ -904,9 +937,10 @@ function settle(state,battle){
   }
   const ourMvp=mvp.team===0?mvp.id:null,starters=battle.units.filter(u=>u.team===0&&!u.subbedOut).map(u=>u.id),speaker=ourMvp||starters[Math.floor(battle.time)%starters.length],good0=type==='cup'?cupWin:win,quote={id:speaker,text:voice(speaker,ourMvp?'mvp':good0?'win':'lose',state.day+state.slot)};
   state.history.unshift({opponent:battle.opponent.name,opp,type,label,quote,win:type==='cup'?cupWin:win,draw:type==='cup'?false:draw,pen:type==='cup'&&draw,score,round:round+1,time:Math.round(battle.time),day:state.day,season:state.season,gold,gems,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},units:battle.units.map(u=>({id:u.id,team:u.team,damage:u.damage,healing:u.healing,kills:u.kills,taken:u.taken,rating:u.rating,alive:u.alive,sub:u.uid.includes('s')||!!u.subbedOut}))});state.history=state.history.slice(0,60);
-  const levels={},played=new Set(battle.units.filter(u=>u.team===0).map(u=>u.id)),good=win||cupWin;
+  const levels={},played=new Set(battle.units.filter(u=>u.team===0).map(u=>u.id)),good=win||cupWin,injuries=[];
   Object.entries(state.roster).forEach(([id,p])=>{
     if(!played.has(id)){p.morale=clamp100(p.morale-2);return;}
+    if(!p.injury&&random(hash(`injury-${state.season}-${round}-${Math.round(battle.time*10)}-${id}`))()<injuryChance(p)){const major=random(hash(`injury-kind-${state.season}-${round}-${id}`))()<.25,def=INJURIES[major?1:0];p.injury={type:def.id,label:def.label,name:def.names[(round+id.length)%def.names.length],days:def.days,pen:def.pen};injuries.push({id,...p.injury});addNews(state,'부상',`${CHARACTERS.find(c=>c.id===id).name} ${def.label} · ${p.injury.name} (${def.days}일)`);}p.injuryOmen=false;
     const u=battle.units.find(v=>v.team===0&&v.id===id);levels[id]=p.level;p.xp+=good?65:40;p.fatigue=Math.max(0,Math.min(100,p.fatigue+12-med*3));levelUp(p);
     p.apps++;p.ratingSum+=u.rating;p.kills+=u.kills;const isMvp=mvp.team===0&&mvp.id===id;if(isMvp)p.mvp++;
     p.morale=clamp100(p.morale+(good?6:draw?1:-5)+(u.rating>=8?4:u.rating<=5.5?-3:0));p.affinity=Math.min(100,p.affinity+2+(isMvp?5:0));
@@ -915,7 +949,7 @@ function settle(state,battle){
   Object.entries(levels).forEach(([id,before])=>{const p=state.roster[id];if(p.level>before)addNews(state,'성장',`${CHARACTERS.find(c=>c.id===id).name} Lv.${p.level} 달성${pendingTraits(p)?' · 새 특성 선택 가능':''}`);});
   advanceSlot(state);let summary=null;if(state.slot>=SCHEDULE.length)summary=endSeason(state);
   rest(state);state.matchDay=state.day+2;refreshShop(state);
-  return {gold,gems,score,type,cupWin,label,quote,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},summary};
+  return {gold,gems,score,type,cupWin,label,quote,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},summary,injuries};
 }
 
 // ASTRA character atelier, edition II.
