@@ -403,6 +403,13 @@ const SCHOOLS = [
 const V2_LEAGUE=['ECL','SYL','BEL','ARC','NTH','SOL','OBS'];
 const DEFAULT_TACTICS = { formation:'balanced', focus:'nearest', tempo:'balanced', stance:'advance' };
 // 후열 보호: 전열이 후열 바로 앞에 붙어 진을 치고, 다가오는 적만 받아칩니다. GUARD_HOLD초가 지나면 자동으로 전진합니다.
+// 학생별 개별 지시. act: team(팀 지시)·hold(자리 지키기)·dive(후열 침투)·escort(호위, ally=호위할 학생)
+// target: team·nearest·weakest·backline·role:역할(마크) / skill: now(쿨마다)·save(결정적 순간에)
+const ORDER_ACTS={team:'팀 지시 따름',hold:'자리 지키기',dive:'후열 침투',escort:'호위'};
+const ORDER_TARGETS={team:'팀 지시 따름',nearest:'가까운 적',weakest:'낮은 체력',backline:'후열 우선','role:탱커':'마크: 탱커','role:전사':'마크: 전사','role:마법사':'마크: 마법사','role:궁수':'마크: 궁수','role:서포터':'마크: 서포터','role:암살자':'마크: 암살자'};
+const ORDER_SKILLS={now:'쿨마다 사용',save:'결정적 순간에'};
+const SAVE_RULES={서포터:'아군 체력 50% 이하일 때',탱커:'자기 체력 65% 이하일 때',마법사:'적 2명 이상이 모였을 때'};
+const saveRule=role=>SAVE_RULES[role]||'대상 체력 60% 이하일 때 (마무리)';
 const GUARD_HOLD=30, GUARD_ZONE=130, GUARD_DEF=.93, GUARD_COUNTER=1.1;
 // 진형 좌표는 아군 진영 기준 0~1 (x: 0=후방 끝, 1=중앙선 / y: 0=위, 1=아래)
 const FORMATIONS = [
@@ -431,7 +438,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.duos??={}; s.stones??=0;
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0;
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -511,7 +518,7 @@ function leagueTable(state,div=state.division){
   state.leagues[div].results.forEach(round=>(round||[]).forEach(m=>{[[m.home,m.hs,m.as,0],[m.away,m.as,m.hs,1]].forEach(([k,f,a,side])=>{const r=rows[k];if(!r)return;r.p++;r.gf+=f;r.ga+=a;const res=m.w===2?'D':m.w===side?'W':'L';r.form.push(res);if(res==='W'){r.w++;r.pts+=3;}else if(res==='D'){r.d++;r.pts++;}else r.l++;});}));
   return Object.values(rows).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf||a.key.localeCompare(b.key));
 }
-function teamFromState(state){return {info:TEAM,tactics:{...state.tactics},members:state.squad.map(id=>stats(id,state.roster[id],unitBonus(state,id))),positions:formationPositions(state)};}
+function teamFromState(state){return {info:TEAM,tactics:{...state.tactics},members:state.squad.map(id=>({...stats(id,state.roster[id],unitBonus(state,id)),order:{...(state.tactics.orders?.[id]||{})}})),positions:formationPositions(state)};}
 function teamFromOpponent(o,level,boost=0){return {info:o,tactics:{...o.style},boost,members:o.lineup.map(id=>stats(id,{level,stars:Math.max(0,o.tier||0),attack:(level-1)*6,defense:(level-1)*4,speed:level-1,awaken:AWAKEN.filter(a=>level>=a.level).length},{hp:boost,atk:boost,def:boost})),positions:presetPositions(o.style.formation,o.lineup)};}
 const opponentTeam=(state,o,round=state.match)=>teamFromOpponent(o,opponentLevel(state,o,round),opponentBoost(state,o.short,round).total);
 const kills=(b,team)=>b.units.filter(u=>u.team!==team&&!u.alive&&!u.subbedOut).length;
@@ -655,10 +662,19 @@ class Battle {
   setGuard(team){const tt=this.teamTactics[team];tt.stance='guard';this.guardUntil[team]=this.time+GUARD_HOLD;const us=this.units.filter(u=>u.team===team&&u.alive),backs=us.filter(u=>u.range>=70),dir=team?-1:1,backX=backs.length?backs.reduce((v,u)=>v+u.x,0)/backs.length:(team?760:160),cy=us.reduce((v,u)=>v+u.y,0)/Math.max(1,us.length);us.forEach(u=>{u.anchor={x:Math.max(45,Math.min(875,u.range<70?backX+dir*55:u.x)),y:cy+(u.y-cy)*.7};});}
   releaseGuard(team,why){this.teamTactics[team].stance='advance';this.guardUntil[team]=0;this.units.forEach(u=>{if(u.team===team)delete u.anchor;});if(why)this.log(`${this.teams[team].name} · ${why}`,'system');}
   // 후열 근처(GUARD_ZONE)나 자기 자리 가까이 들어온 적만 받아칩니다. 원거리 학생은 사거리 안의 적만 쏩니다.
+  // 자리 지키기: 근접은 자기 자리 120 안의 적만, 원거리는 사거리 안의 적만 상대합니다.
+  holdTarget(u){const post={x:u.startX,y:u.startY},d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),near=this.units.filter(e=>e.team!==u.team&&e.alive&&(u.range<70?d(e,post)<120:d(e,u)<=u.range+4));if(!near.length)return null;const pool=this.target({...u,x:u.x,y:u.y});return near.includes(pool)?pool:near.sort((a,b)=>d(a,u)-d(b,u))[0];}
+  escortAlly(u){const id=u.order?.ally;return id&&this.units.find(a=>a.team===u.team&&a.alive&&a.id===id&&a!==u);}
+  // 호위: 지정한 아군 150 안으로 들어온 적을 막고, 없으면 그 아군 곁(적 쪽으로 30)에 붙어 다닙니다.
+  escortTarget(u){const ally=this.escortAlly(u);if(!ally)return this.target(u);const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);return this.units.filter(e=>e.team!==u.team&&e.alive&&d(e,ally)<150).sort((a,b)=>d(a,ally)-d(b,ally))[0]||null;}
+  homeSpot(u,guard){const act=u.order?.act;if(guard&&u.anchor)return u.anchor;if(act==='hold')return {x:u.startX,y:u.startY};if(act==='escort'){const a=this.escortAlly(u);if(a)return {x:a.x+(u.team?-30:30),y:a.y};}return null;}
+  // 스킬 아끼기: 역할별로 결정적인 순간에만 스킬을 씁니다.
+  skillReady(u,t){if(u.order?.skill!=='save')return true;const allies=this.units.filter(a=>a.team===u.team&&a.alive);if(u.role==='서포터')return allies.some(a=>a.hp/a.maxHp<=.5);if(u.role==='탱커')return u.hp/u.maxHp<=.65;if(u.role==='마법사')return this.units.filter(e=>e.team!==u.team&&e.alive&&Math.hypot(e.x-t.x,e.y-t.y)<135).length>=2;return t.hp/t.maxHp<=.6;}
   guardTarget(u){const enemies=this.units.filter(e=>e.team!==u.team&&e.alive);if(!enemies.length)return null;const backs=this.units.filter(a=>a.team===u.team&&a.alive&&a.range>=70),d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),anchor=u.anchor||u;
     if(u.range<70){const threats=enemies.filter(e=>backs.some(b=>d(e,b)<GUARD_ZONE)||d(e,anchor)<110);return threats.sort((a,b)=>d(a,u)-d(b,u))[0]||null;}
     const inRange=enemies.filter(e=>d(e,u)<=u.range+4);if(!inRange.length)return null;const focus=this.teamTactics[u.team].focus;return inRange.sort((a,b)=>focus==='weakest'?a.hp/a.maxHp-b.hp/b.maxHp:focus==='backline'?b.range-a.range:d(a,u)-d(b,u))[0];}
-  target(u){let enemies=this.units.filter(v=>v.team!==u.team&&v.alive); if(!enemies.length)return null; const focus=this.teamTactics[u.team].focus;return enemies.sort((a,b)=>focus==='weakest'?a.hp/a.maxHp-b.hp/b.maxHp:focus==='backline'?b.range-a.range:Math.hypot(u.x-a.x,u.y-a.y)-Math.hypot(u.x-b.x,u.y-b.y))[0];}
+  target(u){let enemies=this.units.filter(v=>v.team!==u.team&&v.alive); if(!enemies.length)return null; const o=u.order||{};let focus=o.target&&o.target!=='team'?o.target:o.act==='dive'?'backline':this.teamTactics[u.team].focus;
+    if(focus.startsWith('role:')){const marked=enemies.filter(e=>e.role===focus.slice(5));if(marked.length)enemies=marked;focus=this.teamTactics[u.team].focus;if(focus.startsWith('role:'))focus='nearest';}return enemies.sort((a,b)=>focus==='weakest'?a.hp/a.maxHp-b.hp/b.maxHp:focus==='backline'?b.range-a.range:Math.hypot(u.x-a.x,u.y-a.y)-Math.hypot(u.x-b.x,u.y-b.y))[0];}
   // 작전 타임: 템포·타깃·진형을 바꿉니다. 진형이 바뀌면 잠시 새 위치로 재정렬합니다.
   callTimeout(team,changes={},label='작전 타임'){
     if(this.done||this.timeouts[team]<=0)return false;this.timeouts[team]--;const tt=this.teamTactics[team];
@@ -763,14 +779,14 @@ class Battle {
       if(u.airUntil>0){u.x=u.jumpTo.x;u.y=u.jumpTo.y;u.airUntil=0;this.shake=Math.max(this.shake,.6);this.units.filter(a=>a.team!==u.team&&a.alive&&Math.hypot(a.x-u.x,a.y-u.y)<175).forEach(a=>this.hit(u,a,u.atk*2.8,true));this.effects.push({kind:'siuuu',x:u.x,y:u.y,color:'#ffe18f',text:'Siuuu!!',life:1.1,total:1.1});}
       if(u.regroup){if(this.time<u.regroup.until){const dx=u.regroup.x-u.x,dy=u.regroup.y-u.y,d=Math.hypot(dx,dy),sp=(35+u.speed*.45)*1.5*dt;u.moving=d>3;if(d>3){u.x+=dx/d*Math.min(d,sp);u.y+=dy/d*Math.min(d,sp);}continue;}delete u.regroup;}
       if(u.cast>0||u.attackLockUntil>this.time){u.moving=false;continue;}
-      const guard=this.guarding(u.team),t=guard?this.guardTarget(u):this.target(u);
-      if(!t){if(guard&&u.anchor){const dx=u.anchor.x-u.x,dy=u.anchor.y-u.y,dd=Math.hypot(dx,dy),sp=(35+u.speed*.45)*dt;u.moving=dd>6;if(dd>6){u.x+=dx/dd*Math.min(dd,sp);u.y+=dy/dd*Math.min(dd,sp);}}else u.moving=false;continue;}
+      const act=u.order?.act||'team',guard=act==='team'&&this.guarding(u.team),t=guard?this.guardTarget(u):act==='hold'?this.holdTarget(u):act==='escort'&&this.escortAlly(u)?this.escortTarget(u):this.target(u);
+      if(!t){const home=this.homeSpot(u,guard);if(home){const dx=home.x-u.x,dy=home.y-u.y,dd=Math.hypot(dx,dy),sp=(35+u.speed*.45)*dt;u.moving=dd>6;if(dd>6){u.x+=dx/dd*Math.min(dd,sp);u.y+=dy/dd*Math.min(dd,sp);}}else u.moving=false;continue;}
       const dist=Math.hypot(t.x-u.x,t.y-u.y);u.facing=t.x>=u.x?1:-1;
       if(['ronaldo','torres'].includes(u.id)&&u.ultimateCd<=0&&dist<250){this.ultimate(u,t);continue;}
-      if(['ronaldo','torres'].includes(u.id)&&u.skillCd<=0&&dist<=240){this.skill(u,t);continue;}
+      if(['ronaldo','torres'].includes(u.id)&&u.skillCd<=0&&dist<=240&&this.skillReady(u,t)){this.skill(u,t);continue;}
       const tempo=tt.tempo,attackMult=tempo==='aggressive'?1.15:tempo==='defensive'?.9:1;
       u.moving=dist>u.range;if(u.moving){const speed=(35+u.speed*.45)*(u.slow?.5:1)*(tempo==='aggressive'?1.15:1)*(u.siuuuUntil>this.time?1.35:1)*(u.infiltrationUntil>this.time?1.4:1)*(u.elNinoUntil>this.time?1.45:1)*(u.passiveType==='tailwind'&&this.time-u.spawnedAt<5?1.35:1)*(u.id==='yuzu'&&this.time-u.spawnedAt<(u.awaken>=2?9:6)?1.6:1)*(u.element==='바람'?WIND_HASTE:1),move=Math.min(speed*dt,dist-u.range);u.x+=(t.x-u.x)/dist*move;u.y+=(t.y-u.y)/dist*move;}
-      else {if(u.skillCd<=0){this.skill(u,t);continue;}if(u.cooldown<=0&&t.alive){this.hit(u,t,u.atk*attackMult);u.cooldown=Math.max(.5,1.65-u.speed/130)*(tempo==='defensive'?1.1:1)/(u.element==='바람'?WIND_HASTE:1);}}
+      else {if(u.skillCd<=0&&this.skillReady(u,t)){this.skill(u,t);continue;}if(u.cooldown<=0&&t.alive){this.hit(u,t,u.atk*attackMult);u.cooldown=Math.max(.5,1.65-u.speed/130)*(tempo==='defensive'?1.1:1)/(u.element==='바람'?WIND_HASTE:1);}}
       if(tempo==='defensive'&&u.hp<u.maxHp)u.hp=Math.min(u.maxHp,u.hp+u.maxHp*.004*dt);
       if(tt.formation==='protect'&&u.role==='서포터'){u.hp=Math.min(u.maxHp,u.hp+2*dt);}
     }
