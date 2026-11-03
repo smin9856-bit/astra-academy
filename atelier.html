@@ -83,7 +83,26 @@ const ITEMS = [
   { id:'rosary', name:'성녀의 묵주', slot:'charm', rarity:'SR', price:1300, desc:'회복량 +25%', mod:{heal:.25} },
   { id:'hourglass', name:'시간의 모래시계', slot:'charm', rarity:'SR', price:1500, desc:'스킬 재사용 −15%', mod:{haste:.15} },
   { id:'medal', name:'불굴의 훈장', slot:'charm', rarity:'SSR', price:3000, desc:'전투당 한 번 체력 1로 버팀 · 방어력 +8%', mod:{guts:true,def:.08} },
-  { id:'phoenix', name:'불사조의 깃털', slot:'charm', rarity:'SSR', price:0, expedition:true, desc:'전투당 한 번 체력 1로 버팀 · 공격력 +10% · 회복량 +20%', mod:{guts:true,atk:.10,heal:.20} }
+  { id:'phoenix', name:'불사조의 깃털', slot:'charm', rarity:'SSR', price:0, expedition:true, desc:'전투당 한 번 체력 1로 버팀 · 공격력 +10% · 회복량 +20%', mod:{guts:true,atk:.10,heal:.20} },
+  // 추가 장비 · gacha:true는 장비 뽑기에서만 나옵니다.
+  { id:'spear', name:'견습 기사의 창', slot:'weapon', rarity:'R', price:600, desc:'공격력 +5% · 방어력 +3%', mod:{atk:.05,def:.03} },
+  { id:'dagger', name:'그림자 단검', slot:'weapon', rarity:'R', price:650, desc:'공격력 +4% · 속도 +3', mod:{atk:.04,speed:3} },
+  { id:'thunderaxe', name:'뇌명의 도끼', slot:'weapon', rarity:'SR', price:1600, desc:'공격력 +14% · 속도 −2', mod:{atk:.14,speed:-2} },
+  { id:'healstaff', name:'치유사의 지팡이', slot:'weapon', rarity:'SR', price:1500, desc:'회복량 +25% · 스킬 재사용 −5%', mod:{heal:.25,haste:.05} },
+  { id:'moonbow', name:'월광 장궁', slot:'weapon', rarity:'SSR', price:0, gacha:true, desc:'공격력 +16% · 치명타 +8%p', mod:{atk:.16,crit:.08} },
+  { id:'ragnarok', name:'종언의 대검', slot:'weapon', rarity:'SSR', price:0, gacha:true, desc:'공격력 +24% · 치명타 +4%p · 방어력 −5%', mod:{atk:.24,crit:.04,def:-.05} },
+  { id:'padded', name:'누빔 조끼', slot:'armor', rarity:'R', price:550, desc:'체력 +10%', mod:{hp:.10} },
+  { id:'boots', name:'질주의 장화', slot:'armor', rarity:'R', price:600, desc:'속도 +5', mod:{speed:5} },
+  { id:'scale', name:'비늘 갑옷', slot:'armor', rarity:'SR', price:1500, desc:'방어력 +12% · 피해의 3% 회복', mod:{def:.12,steal:.03} },
+  { id:'mageguard', name:'마도 결계복', slot:'armor', rarity:'SR', price:1500, desc:'방어력 +8% · 스킬 재사용 −8%', mod:{def:.08,haste:.08} },
+  { id:'dragonplate', name:'용기사의 갑주', slot:'armor', rarity:'SSR', price:0, gacha:true, desc:'방어력 +20% · 체력 +15% · 공격력 +5%', mod:{def:.20,hp:.15,atk:.05} },
+  { id:'seraphrobe', name:'세라핌의 성의', slot:'armor', rarity:'SSR', price:0, gacha:true, desc:'회복량 +35% · 체력 +12% · 스킬 재사용 −10%', mod:{heal:.35,hp:.12,haste:.10} },
+  { id:'whistle', name:'응원 호루라기', slot:'charm', rarity:'R', price:550, desc:'공격력 +3% · 방어력 +3%', mod:{atk:.03,def:.03} },
+  { id:'compass', name:'별의 나침반', slot:'charm', rarity:'R', price:600, desc:'속도 +4 · 치명타 +2%p', mod:{speed:4,crit:.02} },
+  { id:'vampfang', name:'흡혈귀의 송곳니', slot:'charm', rarity:'SR', price:1500, desc:'피해의 6% 회복 · 공격력 +5%', mod:{steal:.06,atk:.05} },
+  { id:'owl', name:'부엉이 브로치', slot:'charm', rarity:'SR', price:1400, desc:'치명타 +7%p · 스킬 재사용 −5%', mod:{crit:.07,haste:.05} },
+  { id:'crown', name:'별왕의 왕관', slot:'charm', rarity:'SSR', price:0, gacha:true, desc:'공격력·방어력·체력 +10%', mod:{atk:.10,def:.10,hp:.10} },
+  { id:'timegear', name:'크로노스의 톱니', slot:'charm', rarity:'SSR', price:0, gacha:true, desc:'스킬 재사용 −25% · 속도 +5', mod:{haste:.25,speed:5} }
 ];
 
 const FACILITIES = [
@@ -112,7 +131,9 @@ const CONSUMABLES = [
   { id:'xp_m', name:'숙련의 비약', kind:'xp', xp:400, price:900, desc:'경험치 +400' },
   { id:'xp_l', name:'별빛 전술서', kind:'xp', xp:1000, price:2000, desc:'경험치 +1,000' },
   { id:'heal_s', name:'응급 치료 키트', kind:'heal', heal:3, price:400, desc:'부상 회복 3일 단축' },
-  { id:'heal_l', name:'성녀의 치유약', kind:'heal', heal:99, price:1200, desc:'부상 즉시 완치' }
+  { id:'heal_l', name:'성녀의 치유약', kind:'heal', heal:99, price:1200, desc:'부상 즉시 완치' },
+  { id:'stamina', name:'활력 드링크', kind:'fatigue', fatigue:40, price:350, desc:'피로도 −40' },
+  { id:'flowers', name:'응원 꽃다발', kind:'morale', morale:15, price:300, desc:'사기 +15' }
 ];
 // 부상: 전투 후 학생마다 확률로 생깁니다. 경기에는 그대로 나갈 수 있지만 능력치가 내려갑니다.
 const INJURIES = [
@@ -501,7 +522,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0);
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0;
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -619,9 +640,9 @@ const isMatchDay=state=>state.day>=state.matchDay;
 const recruitCost=state=>300-30*(state.facilities?.scout||0);
 function addNews(state,tag,text){state.news.unshift({season:state.season,day:state.day,tag,text});state.news=state.news.slice(0,14);}
 const SLOT_LABEL={weapon:'무기',armor:'방어구',charm:'장신구'};
-function grantItem(state,rarity,rng=Math.random,expedition=false){const pool=ITEMS.filter(i=>i.rarity===rarity&&(expedition||!i.expedition));const def=pick(pool.length?pool:ITEMS,rng);state.items.push({uid:state.itemSeq++,id:def.id});return def;}
+function grantItem(state,rarity,rng=Math.random,expedition=false){const pool=ITEMS.filter(i=>i.rarity===rarity&&!i.gacha&&(expedition||!i.expedition));const def=pick(pool.length?pool:ITEMS,rng);state.items.push({uid:state.itemSeq++,id:def.id});return def;}
 const rollRarity=(rng,ssr=.05,sr=.35)=>{const r=rng();return r<ssr?'SSR':r<ssr+sr?'SR':'R';};
-function refreshShop(state){const rng=random(hash(`shop-${state.season}-${state.slot??state.match}`));const stock=[];while(stock.length<4){const r=rollRarity(rng,.08,.42),def=pick(ITEMS.filter(i=>i.rarity===r&&!i.expedition),rng);if(!stock.some(s=>s.id===def.id))stock.push({id:def.id,sold:false});}state.shop={key:`${state.season}-${state.slot??state.match}`,stock};}
+function refreshShop(state){const rng=random(hash(`shop-${state.season}-${state.slot??state.match}`));const stock=[];while(stock.length<4){const r=rollRarity(rng,.08,.42),def=pick(ITEMS.filter(i=>i.rarity===r&&!i.expedition&&!i.gacha),rng);if(!stock.some(s=>s.id===def.id))stock.push({id:def.id,sold:false});}state.shop={key:`${state.season}-${state.slot??state.match}`,stock};}
 function buyItem(state,index){const s=state.shop?.stock[index],def=s&&itemDef(s.id);if(!def||s.sold||state.gold<def.price)return false;state.gold-=def.price;s.sold=true;state.items.push({uid:state.itemSeq++,id:def.id});return def;}
 function equip(state,id,uid){const p=state.roster[id],it=state.items.find(i=>i.uid===uid);if(!p||!it)return false;const slot=itemDef(it.id).slot;Object.values(state.roster).forEach(o=>{if(o.gear?.[slot]===uid)o.gear[slot]=null;});p.gear[slot]=uid;return true;}
 function unequip(state,id,slot){const p=state.roster[id];if(!p||!(slot in p.gear))return false;p.gear[slot]=null;return true;}
@@ -691,7 +712,7 @@ const expeditionChance=(state,zone,ids)=>Math.max(.15,Math.min(.95,partyPower(st
 function canExpedition(state,zoneId,ids){const z=EXPEDITIONS.find(e=>e.id===zoneId);if(!z)return 'zone';if(state.expeditionDay===state.day)return 'today';if(!ids.length||ids.length>3||new Set(ids).size!==ids.length||ids.some(id=>!state.roster[id]))return 'party';if(ids.some(id=>state.roster[id].fatigue>=80))return 'tired';if(state.gold<z.cost)return 'gold';return '';}
 function runExpedition(state,zoneId,ids,rng=Math.random){if(canExpedition(state,zoneId,ids))return null;const z=EXPEDITIONS.find(e=>e.id===zoneId),chance=expeditionChance(state,z,ids),ok=rng()<chance;state.gold-=z.cost;state.expeditionDay=state.day;const items=[],notes=[];let stones=0;
   ids.forEach(id=>{const p=state.roster[id];p.fatigue=clamp100(p.fatigue+z.fatigue+(ok?0:10));p.xp+=ok?z.xp:Math.round(z.xp/2);levelUp(p);});
-  if(ok){let n=z.items+(z.bonus&&rng()<z.bonus?1:0);for(let i=0;i<n;i++){const ex=z.exclusive&&rng()<z.exclusive,r=ex?'SSR':rollRarity(rng,z.ssr,z.sr),pool=ITEMS.filter(it=>it.rarity===r&&(ex?it.expedition:!it.expedition)),def=pick(pool,rng);state.items.push({uid:state.itemSeq++,id:def.id});items.push(def.id);}if(z.stone&&rng()<z.stone){stones=1;state.stones=(state.stones||0)+1;}}
+  if(ok){let n=z.items+(z.bonus&&rng()<z.bonus?1:0);for(let i=0;i<n;i++){const ex=z.exclusive&&rng()<z.exclusive,r=ex?'SSR':rollRarity(rng,z.ssr,z.sr),pool=ITEMS.filter(it=>it.rarity===r&&!it.gacha&&(ex?it.expedition:!it.expedition)),def=pick(pool,rng);state.items.push({uid:state.itemSeq++,id:def.id});items.push(def.id);}if(z.stone&&rng()<z.stone){stones=1;state.stones=(state.stones||0)+1;}}
   else{const def=grantItem(state,'R',rng);items.push(def.id);notes.push('후퇴하며 겨우 장비 하나를 챙겼어요.');}
   const log={zone:z.id,ok,party:[...ids],items,stones,day:state.day,season:state.season,chance:Math.round(chance*100)};state.expeditions.unshift(log);state.expeditions=state.expeditions.slice(0,8);
   addNews(state,'원정',`${z.name} 원정 ${ok?'성공':'실패'} · 장비 ${items.length}개${stones?' · 각성석 +1':''}`);return {...log,notes};}
@@ -706,9 +727,21 @@ const INJURY_BASE=.05, INJURY_MAX=.20, OMEN_RISK=.5, OMEN_CHANCE=.15;
 function injuryChance(p){if(!p||p.injury)return 0;if(p.injuryOmen)return OMEN_RISK;return INJURY_BASE+(INJURY_MAX-INJURY_BASE)*Math.max(0,Math.min(100,p.fatigue||0))/100;}
 function buyConsumable(state,key){const c=CONSUMABLES.find(x=>x.id===key);if(!c||state.gold<c.price)return false;state.gold-=c.price;state.consumables[key]=(state.consumables[key]||0)+1;return c;}
 // 소모품 사용: 경험치 아이템은 훈련 횟수·피로와 상관없이 쓸 수 있고, 치료 아이템은 부상 중인 학생에게만 씁니다.
-function useConsumable(state,id,key){const c=CONSUMABLES.find(x=>x.id===key),p=state.roster[id];if(!c||!p||!(state.consumables[key]>0))return false;if(c.kind==='heal'&&!p.injury)return false;state.consumables[key]--;
+function useConsumable(state,id,key){const c=CONSUMABLES.find(x=>x.id===key),p=state.roster[id];if(!c||!p||!(state.consumables[key]>0))return false;if(c.kind==='heal'&&!p.injury||c.kind==='fatigue'&&!p.fatigue||c.kind==='morale'&&p.morale>=100)return false;state.consumables[key]--;
+  if(c.kind==='fatigue'){const before=p.fatigue;p.fatigue=Math.max(0,p.fatigue-c.fatigue);return {kind:'fatigue',amount:before-p.fatigue,fatigue:p.fatigue};}
+  if(c.kind==='morale'){const before=p.morale;p.morale=clamp100(p.morale+c.morale);return {kind:'morale',amount:p.morale-before,morale:p.morale};}
   if(c.kind==='xp'){const before=p.level;p.xp+=c.xp;levelUp(p);return {kind:'xp',xp:c.xp,levels:p.level-before,level:p.level};}
   p.injury.days-=c.heal;if(p.injury.days<=0){p.injury=null;return {kind:'heal',cured:true};}return {kind:'heal',cured:false,days:p.injury.days};}
+// 장비 뽑기: 크리스탈로 상점·원정에 없는 가챠 한정 SSR까지 노립니다. 30회 안에 SSR 확정, 10회 뽑기는 SR 이상 1개 보장.
+const GEAR_GACHA={cost:200,ten:1800,ssr:.05,sr:.30,pity:30};
+function gearGacha(state,count,rng=Math.random){if(![1,10].includes(count))return null;const price=count===10?GEAR_GACHA.ten:GEAR_GACHA.cost;if(state.gems<price)return null;state.gems-=price;const out=[];
+  for(let i=0;i<count;i++){state.gearPity++;const roll=rng();let r=state.gearPity>=GEAR_GACHA.pity||roll<GEAR_GACHA.ssr?'SSR':roll<GEAR_GACHA.ssr+GEAR_GACHA.sr?'SR':'R';if(count===10&&i===9&&r==='R'&&out.every(o=>itemDef(o.id).rarity==='R'))r='SR';if(r==='SSR')state.gearPity=0;
+    const pool=ITEMS.filter(it=>it.rarity===r&&!it.expedition),limited=pool.filter(it=>it.gacha),def=r==='SSR'&&limited.length&&rng()<.5?pick(limited,rng):pick(pool,rng);state.items.push({uid:state.itemSeq++,id:def.id});out.push({id:def.id,uid:state.itemSeq-1,limited:!!def.gacha});}
+  return out;}
+// 장비 판매: 장착하지 않은 장비만. 상점가의 30%, 상점에 없는 SSR은 900 G.
+const sellValue=def=>def.price?Math.round(def.price*.3):900;
+function sellItem(state,uid){const it=state.items.find(i=>i.uid===uid);if(!it||equippedBy(state,uid))return false;const v=sellValue(itemDef(it.id));state.items=state.items.filter(i=>i!==it);state.gold+=v;return v;}
+function sellCommon(state){const spare=state.items.filter(i=>itemDef(i.id).rarity==='R'&&!equippedBy(state,i.uid));let total=0;spare.forEach(i=>{total+=sellItem(state,i.uid);});return {count:spare.length,gold:total};}
 function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<180||p.fatigue>=90) return false; state.gold-=180; p[type]+=(type==='speed'?3:4)+lvl;p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
 function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
 function rest(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
