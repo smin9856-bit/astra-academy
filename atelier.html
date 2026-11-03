@@ -522,7 +522,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0;
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s);
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -743,6 +743,15 @@ function gearGacha(state,count,rng=Math.random){if(![1,10].includes(count))retur
 const sellValue=def=>def.price?Math.round(def.price*.3):900;
 function sellItem(state,uid){const it=state.items.find(i=>i.uid===uid);if(!it||equippedBy(state,uid))return false;const v=sellValue(itemDef(it.id));state.items=state.items.filter(i=>i!==it);state.gold+=v;return v;}
 function sellCommon(state){const spare=state.items.filter(i=>itemDef(i.id).rarity==='R'&&!equippedBy(state,i.uid));let total=0;spare.forEach(i=>{total+=sellItem(state,i.uid);});return {count:spare.length,gold:total};}
+// 후보 라인업: 최대 5칸(빈칸은 null). 작전 타임 교체는 이 후보들 중에서만 고릅니다.
+const BENCH_SIZE=5;
+function normalizeBench(s){const seen=new Set(s.squad),b=(Array.isArray(s.bench)?s.bench:null)??Object.keys(s.roster).filter(id=>!seen.has(id)).slice(0,BENCH_SIZE);s.bench=Array.from({length:BENCH_SIZE},(_,i)=>{const id=b[i];if(!id||!s.roster[id]||seen.has(id))return null;seen.add(id);return id;});return s.bench;}
+// 라인업 칸(선발 squad / 후보 bench) 하나에 학생을 넣습니다. 이미 다른 칸에 있던 학생이면 서로 자리를 바꿉니다.
+function setLineup(state,sel,id){if(!state.roster[id]||!sel||!['squad','bench'].includes(sel.kind))return false;const list=state[sel.kind],i=Number(sel.i);if(!(i>=0&&i<list.length))return false;const cur=list[i];if(cur===id)return false;
+  const where=state.squad.includes(id)?['squad',state.squad.indexOf(id)]:state.bench.includes(id)?['bench',state.bench.indexOf(id)]:null;
+  if(where&&where[0]==='squad'&&!cur)return 'need-five';
+  if(where)state[where[0]][where[1]]=cur??null;list[i]=id;return true;}
+function clearBench(state,i){if(!state.bench?.[i])return false;state.bench[i]=null;return true;}
 function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<180||p.fatigue>=90) return false; state.gold-=180; p[type]+=(type==='speed'?3:4)+lvl;p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
 function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
 function rest(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
