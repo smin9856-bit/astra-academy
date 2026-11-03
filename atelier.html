@@ -416,7 +416,8 @@ const elementMult=(a,b)=>{const e=elementEdge(a,b);return e>0?1.25:e<0?.8:1;};
 function elementMatchup(ours,theirs){let atk=0,def=0;ours.forEach(a=>theirs.forEach(b=>{if(elementEdge(a,b)>0)atk++;if(elementEdge(b,a)>0)def++;}));return {atk,def,score:atk-def};}
 function counterElements(theirs){return Object.keys(ELEMENTS).map(el=>({el,beats:theirs.filter(e=>elementEdge(el,e)>0).length,weak:theirs.filter(e=>elementEdge(e,el)>0).length})).map(r=>({...r,score:r.beats-r.weak})).sort((a,b)=>b.score-a.score||b.beats-a.beats);}
 // 각성: 단계마다 레벨·골드·각성석이 필요합니다. 1단계 능력치, 2단계 패시브 강화, 3단계 각성 스킬.
-const AWAKEN=[{level:5,gold:2000,stones:1,desc:'체력·공격·방어 +6%'},{level:10,gold:4500,stones:2,desc:'능력치 +6% · 고유 패시브 강화'},{level:15,gold:9000,stones:3,desc:'능력치 +6% · 각성 스킬 (스킬 위력 +30%)'}];
+const STAR_STEP=.07, AWAKEN_STEP=.10;
+const AWAKEN=[{level:5,gold:2000,stones:1,desc:'체력·공격·방어 +10%'},{level:10,gold:4500,stones:2,desc:'능력치 +10% · 고유 패시브 강화'},{level:15,gold:9000,stones:3,desc:'능력치 +10% · 각성 스킬 (스킬 위력 +30%)'}];
 function grantGuestHero(state){state.gifts??={};if(state.gifts.ronaldo)return false;state.roster.ronaldo??=newProgress();state.gifts.ronaldo=true;return true;}
 function grantTorres(state){state.gifts??={};if(state.gifts.torres)return false;state.roster.torres??=newProgress();state.gifts.torres=true;return true;}
 // div: 새 게임을 시작할 때 속하는 리그 (1부/2부). tier: 학교 전력 보정. AI 학교도 레벨에 맞춰 훈련한 만큼 능력치가 오릅니다.
@@ -472,7 +473,7 @@ function formationPositions(state) {
 }
 function arenaPosition(p) { return { x:Math.round(70+clamp01(p.x)*350), y:Math.round(105+clamp01(p.y)*210) }; }
 function freshState() { const s={ version:1, day:1, season:1, gold:3200, gems:3600, pity:0, squad:['aria','rin','luna','sylvie','noel'], roster:Object.fromEntries(CHARACTERS.slice(0,5).map(c=>[c.id,newProgress()])), tactics:{...DEFAULT_TACTICS}, history:[], match:0, division:2 }; return upgradeState(s); }
-function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], gear:{weapon:null,armor:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
+function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], copies:0, gear:{weapon:null,armor:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
@@ -513,7 +514,7 @@ function unitBonus(state,id){
   const bond=(p.chapter||0)*.02;b.hp+=bond;b.atk+=bond;b.def+=bond;
   return b;
 }
-function stats(id, progress={}, b={}) { const c=CHARACTERS.find(c=>c.id===id),aw=progress.awaken||0; const mult=1+((progress.level||1)-1)*.055+(progress.stars||0)*.025+aw*.06; const tired=1-(progress.fatigue||0)*.002; const maxHp=Math.round(c.hp*mult*(1+(b.hp||0))); return {...c, maxHp, hp:maxHp, atk:Math.round((c.atk*mult+(progress.attack||0))*tired*(1+(b.atk||0))), def:Math.round((c.def*mult+(progress.defense||0))*(1+(b.def||0))), speed:c.speed+(progress.speed||0)+(b.speed||0), level:progress.level||1, crit:.12+(b.crit||0)+(id==='rose'?(aw>=2?.15:.1):0), awaken:aw, skill:aw>=3&&AWAKEN_SKILLS[id]?AWAKEN_SKILLS[id]:c.skill, steal:b.steal||0, heal:1+(b.heal||0), haste:Math.min(.5,b.haste||0), guts:!!b.guts }; }
+function stats(id, progress={}, b={}) { const c=CHARACTERS.find(c=>c.id===id),aw=progress.awaken||0; const legacy=progress.legacy,mult=1+((progress.level||1)-1)*.055+(progress.stars||0)*(legacy?.025:STAR_STEP)+aw*(legacy?.06:AWAKEN_STEP); const tired=1-(progress.fatigue||0)*.002; const maxHp=Math.round(c.hp*mult*(1+(b.hp||0))); return {...c, maxHp, hp:maxHp, atk:Math.round((c.atk*mult+(progress.attack||0))*tired*(1+(b.atk||0))), def:Math.round((c.def*mult+(progress.defense||0))*(1+(b.def||0))), speed:c.speed+(progress.speed||0)+(b.speed||0), level:progress.level||1, crit:.12+(b.crit||0)+(id==='rose'?(aw>=2?.15:.1):0), awaken:aw, skill:aw>=3&&AWAKEN_SKILLS[id]?AWAKEN_SKILLS[id]:c.skill, stars:progress.stars||0, steal:b.steal||0, heal:1+(b.heal||0), haste:Math.min(.5,(b.haste||0)+((progress.stars||0)>=5?.1:0)), guts:!!b.guts }; }
 const unitPower=s=>Math.round(s.hp*.25+s.atk*3+s.def*2+s.speed+(s.crit-.12)*900+s.steal*1500+(s.heal-1)*600+s.haste*700+(s.guts?150:0));
 function power(state) { return state.squad.reduce((v,id)=>v+unitPower(stats(id,state.roster[id],unitBonus(state,id))),0); }
 const teamPower=team=>team.members.reduce((v,s)=>v+unitPower(s),0);
@@ -557,7 +558,7 @@ function leagueTable(state,div=state.division){
   return Object.values(rows).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf||a.key.localeCompare(b.key));
 }
 function teamFromState(state){return {info:TEAM,tactics:{...state.tactics},members:state.squad.map(id=>({...stats(id,state.roster[id],unitBonus(state,id)),order:{...(state.tactics.orders?.[id]||{})}})),positions:formationPositions(state)};}
-function teamFromOpponent(o,level,boost=0){return {info:o,tactics:{...o.style},boost,members:o.lineup.map(id=>stats(id,{level,stars:Math.max(0,o.tier||0),attack:(level-1)*6,defense:(level-1)*4,speed:level-1,awaken:AWAKEN.filter(a=>level>=a.level).length},{hp:boost,atk:boost,def:boost})),positions:presetPositions(o.style.formation,o.lineup)};}
+function teamFromOpponent(o,level,boost=0){return {info:o,tactics:{...o.style},boost,members:o.lineup.map(id=>stats(id,{legacy:true,level,stars:Math.max(0,o.tier||0),attack:(level-1)*6,defense:(level-1)*4,speed:level-1,awaken:AWAKEN.filter(a=>level>=a.level).length},{hp:boost,atk:boost,def:boost})),positions:presetPositions(o.style.formation,o.lineup)};}
 const opponentTeam=(state,o,round=state.match)=>teamFromOpponent(o,opponentLevel(state,o,round),opponentBoost(state,o.short,round).total);
 const kills=(b,team)=>b.units.filter(u=>u.team!==team&&!u.alive&&!u.subbedOut).length;
 function simulateMatch(state,home,away,round,salt='',neutral=false){const h=teamInfo(home),a=teamInfo(away);const b=new Battle(null,hash(`${state.season}-${round}-${home}-${away}${salt}`),[opponentTeam(state,h,round),opponentTeam(state,a,round)],{ai:[true,true],home:neutral?null:0});for(let i=0;i<2500&&!b.done;i++)b.step(.05);return {home,away,hs:kills(b,0),as:kills(b,1),w:b.winner};}
@@ -605,7 +606,7 @@ function awakenCheck(state,id){const p=state.roster[id];if(!p)return {ok:false,r
 function awaken(state,id){const c=awakenCheck(state,id);if(!c.ok)return false;const p=state.roster[id];state.gold-=c.req.gold;state.stones-=c.req.stones;p.awaken=(p.awaken||0)+1;addNews(state,'각성',`${CHARACTERS.find(x=>x.id===id).name} ${p.awaken}단계 각성!`);return p.awaken;}
 const STONE_PRICE=1800;
 function buyStone(state){if(!state.shop||state.shop.stoneSold||state.gold<STONE_PRICE)return false;state.gold-=STONE_PRICE;state.stones=(state.stones||0)+1;state.shop.stoneSold=true;return true;}
-const traitSlots=p=>TRAIT_LEVELS.filter(l=>p.level>=l).length;
+const traitSlots=p=>TRAIT_LEVELS.filter(l=>p.level>=l).length+((p.stars||0)>=3?1:0);
 const pendingTraits=p=>Math.max(0,traitSlots(p)-(p.traits?.length||0));
 // 특성 후보: 학생 등급(R·SR·SSR)과 돌파가 높을수록 후보가 많고 높은 등급이 잘 나옵니다. 레전더리는 낮은 확률.
 function traitOdds(id,p){const c=CHARACTERS.find(c=>c.id===id),g={R:0,SR:1,SSR:2}[c.rarity]??0,slot=p.traits?.length||0,up=g+slot*.5+(p.stars||0)*.2;return {count:3+g,legend:.015+g*.0075+(p.stars||0)*.004+slot*.0075,weights:{N:Math.max(15,60-up*14),R:30+up*4,E:Math.max(0,4+up*9)}};}
@@ -645,14 +646,14 @@ function recruit(state, count, rng=Math.random) {
   const cost=recruitCost(state),useTickets=(state.tickets||0)>=count;if (![1,10].includes(count)||(!useTickets&&state.gems<count*cost)) return null;
   if(useTickets)state.tickets-=count;else state.gems-=count*cost; const results=[];
   for(let i=0;i<count;i++) { state.pity++; const roll=rng(); const rarity=state.pity>=50||roll<.03?'SSR':roll<.25?'SR':'R'; if(rarity==='SSR') state.pity=0; const pool=CHARACTERS.filter(c=>c.rarity===rarity); const c=pool[Math.floor(rng()*pool.length)]; const duplicate=!!state.roster[c.id];
-    if(duplicate) { state.roster[c.id].stars=Math.min(5,state.roster[c.id].stars+1); state.gold+=150; state.stones=(state.stones||0)+1; } else state.roster[c.id]=newProgress(); results.push({id:c.id,duplicate});
+    let reward=null; if(duplicate) { const q=state.roster[c.id]; if((q.stars||0)+(q.copies||0)<BREAKTHROUGH.length){q.copies=(q.copies||0)+1;state.gold+=150;reward='copy';} else {state.stones=(state.stones||0)+1;state.gold+=300;reward='stone';} } else state.roster[c.id]=newProgress(); results.push({id:c.id,duplicate,reward});
   } return results;
 }
 // 쿠폰: 저장 데이터마다 한 번씩만 받을 수 있습니다.
 const COUPONS={welcome:{tickets:10000,gold:10000,label:'웰컴 쿠폰'},siu:{heroPicks:1,label:'SIUUU 영웅 선택권'}};
 function redeemCoupon(state,raw){const code=String(raw||'').trim().toLowerCase(),c=COUPONS[code];if(!c)return {error:'invalid'};if(state.coupons.includes(code))return {error:'used'};state.coupons.push(code);state.tickets+=c.tickets||0;state.gold+=c.gold||0;state.heroPicks+=c.heroPicks||0;return {code,...c};}
 // 영웅 선택권: 원하는 학생을 영입합니다. 이미 있는 학생이면 돌파 +1, 각성석 +1.
-function pickHero(state,id){if(!(state.heroPicks>0)||!CHARACTERS.some(c=>c.id===id))return false;state.heroPicks--;const p=state.roster[id];if(p){p.stars=Math.min(5,p.stars+1);state.stones=(state.stones||0)+1;return {id,duplicate:true};}state.roster[id]=newProgress();return {id,duplicate:false};}
+function pickHero(state,id){if(!(state.heroPicks>0)||!CHARACTERS.some(c=>c.id===id))return false;state.heroPicks--;const p=state.roster[id];if(p){if((p.stars||0)<5){p.stars++;return {id,duplicate:true,reward:'star'};}state.stones=(state.stones||0)+1;return {id,duplicate:true,reward:'stone'};}state.roster[id]=newProgress();return {id,duplicate:false};}
 // 장비 원정: 하루 한 번, 학생 1~3명을 보내 장비를 찾아옵니다. 파티 전투력이 권장치에 가까울수록 성공률이 올라갑니다.
 const EXPEDITIONS=[
   {id:'forest',name:'속삭이는 숲',desc:'수련생도 다녀올 수 있는 가까운 숲. 흔한 장비가 주로 나와요.',cost:300,rec:1500,fatigue:10,items:1,ssr:.02,sr:.25,xp:30},
@@ -672,6 +673,9 @@ function runExpedition(state,zoneId,ids,rng=Math.random){if(canExpedition(state,
 // 세이브 코드: 진행 상황을 문자열로 옮깁니다. ASTRA1: 접두사 + UTF-8 JSON의 base64.
 function encodeSave(state){const bytes=new TextEncoder().encode(JSON.stringify(state));let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));return 'ASTRA1:'+btoa(bin);}
 function decodeSave(code){try{let raw=String(code||'').trim();if(raw.startsWith('ASTRA1:')){const bin=atob(raw.slice(7).replace(/\s+/g,''));raw=new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0)));}const s=JSON.parse(raw);if(s?.version!==1||s?.squad?.length!==5||!s?.roster||!s?.tactics||s.squad.some(id=>!s.roster[id]))return null;return upgradeState(s);}catch{return null;}}
+// 돌파: 중복으로 얻은 돌파 재료 1개로 레벨 제한 없이 바로 1단계씩 올립니다 (최대 5).
+const BREAKTHROUGH=[{desc:'체력·공격·방어 +7%'},{desc:'능력치 +7% · 특성 후보 등급 상승'},{desc:'능력치 +7% · 특성 슬롯 +1 (레벨 무관)'},{desc:'능력치 +7% · 레전더리 특성 확률 상승'},{desc:'능력치 +7% · 스킬 재사용 −10%'}];
+function breakthrough(state,id){const p=state.roster[id];if(!p||(p.copies||0)<1||(p.stars||0)>=BREAKTHROUGH.length)return false;p.copies--;p.stars=(p.stars||0)+1;addNews(state,'돌파',`${CHARACTERS.find(c=>c.id===id).name} ${p.stars}단계 돌파!`);return p.stars;}
 function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<180||p.fatigue>=90) return false; state.gold-=180; p[type]+=(type==='speed'?3:4)+lvl;p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
 function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
 function rest(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
