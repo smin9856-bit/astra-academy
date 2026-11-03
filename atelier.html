@@ -629,8 +629,9 @@ function callCoach(text,c=COACH){const t=String(text??''),name=String(c.name||''
   const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   // '코치' 호칭: 기존 '코치님/코치' 형태를 살리고 이름만 앞에 붙입니다. 이미 바뀐 문장에 다시 써도 같습니다.
   if(title==='코치')return t.replace(new RegExp(`(?:${esc(name)}\\s)?코치`,'g'),`${name} 코치`);
-  const last=who.charCodeAt(who.length-1),hangul=last>=0xAC00&&last<=0xD7A3,jong=hangul?(last-0xAC00)%28:0,batchim=jong>0;
-  return t.replace(/코치(?:님)?((?:이랑|으로|가|이|를|을|는|은|와|과|랑|로)(?![가-힣]))?/g,(m,josa)=>{if(!josa)return who;const pair=JOSA.find(p=>p.includes(josa));if(!pair)return who+josa;const pickB=pair[0]==='로'?batchim&&jong!==8:batchim;return who+pair[pickB?1:0];});}
+  // 원래 대사에 '님'이 없던 '코치'는 호칭에서도 '님'을 뺍니다. (코치! → 선생! / 코치님! → 선생님!)
+  const plain=title.endsWith('님')?coachAddress({name,title:title.slice(0,-1)}):who;
+  return t.replace(/코치(님)?((?:이랑|으로|가|이|를|을|는|은|와|과|랑|로)(?![가-힣]))?/g,(m,nim,josa)=>{const w=nim?who:plain;if(!josa)return w;const last=w.charCodeAt(w.length-1),jong=last>=0xAC00&&last<=0xD7A3?(last-0xAC00)%28:0,pair=JOSA.find(p=>p.includes(josa));if(!pair)return w+josa;const pickB=pair[0]==='로'?jong>0&&jong!==8:jong>0;return w+pair[pickB?1:0];});}
 function voice(id,kind,seed=0){const lines=HERO_LORE[id]?.lines?.[kind];return lines?.length?callCoach(lines[Math.abs(Math.floor(seed))%lines.length]):'';}
 function talk(state,id){const p=state.roster[id],c=CHARACTERS.find(c=>c.id===id);if(!p||p.talked===state.day)return false;p.talked=state.day;p.affinity=Math.min(100,p.affinity+5);p.morale=clamp100(p.morale+2);const mood=p.morale<45?'tired':p.morale>=85?'happy':'talk',pool=[...(HERO_LORE[id]?.lines?.[mood]||[]),...(mood==='talk'?[c.quote]:[])];return callCoach(pick(pool.length?pool:[c.quote,...TALK_LINES],random(hash(id+'-'+state.season+'-'+state.day))));}
 const duoKey=c=>c.pair.join('+');
