@@ -427,6 +427,18 @@ main.page-enter .panel:nth-child(2),main.page-enter .stat-card:nth-child(2),main
 .drill-pips{display:flex;align-items:center;gap:3px}.drill-pips i{width:14px;height:6px;background:#3a3242;border-radius:1px}.drill-pips i.on{background:#e8b04f}.drill-pips small{margin-left:6px;font-size:11px;color:#a8977f}
 .drill-card p{margin:0;font-size:12px;color:#f0e2c4}.drill-next{font-size:11px;color:#bfae93}.drill-tip{font-size:11px;color:#8fb59a}.drill-actions{display:flex;gap:6px;margin-top:2px}
 
+/* 정렬 목록 */
+.sort-bar{justify-content:flex-start}
+.sort-select{position:relative;display:inline-flex;min-width:150px}
+.sort-select select{appearance:none;-webkit-appearance:none;width:100%;padding:7px 32px 7px 12px;font:inherit;font-size:13px;font-weight:700;color:#352332;cursor:pointer;background:linear-gradient(#e4c38b,#bb945b);border:1px solid #ffe2a6;border-radius:3px;box-shadow:inset 0 0 0 1px #87673b66}
+.sort-select::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-52%);font-size:12px;color:#352332;pointer-events:none}
+.sort-select select:hover{background:linear-gradient(#f4dcae,#d8b075)}.sort-select select:focus-visible{outline:2px solid #fff3c4;outline-offset:2px}
+.sort-select select option{color:#f0e2c4;background:#2a2234;font-weight:400}
+
+/* 우선순위 · 필터 줄 */
+.auto-pri{display:flex;align-items:center;gap:5px;font-size:12px;color:#c9b38d}
+.filter-bar{flex-wrap:wrap;row-gap:6px}.filter-bar .filter{white-space:nowrap;writing-mode:horizontal-tb;flex:none}
+
 </style>
 </head>
 <body>
@@ -1009,11 +1021,11 @@ function formationPositions(state) {
 }
 function arenaPosition(p) { return { x:Math.round(70+clamp01(p.x)*350), y:Math.round(105+clamp01(p.y)*210) }; }
 function freshState() { const s={ version:1, day:1, season:1, gold:3200, gems:3600, pity:0, squad:['aria','rin','luna','sylvie','noel'], roster:Object.fromEntries(CHARACTERS.slice(0,5).map(c=>[c.id,newProgress()])), tactics:{...DEFAULT_TACTICS}, history:[], match:0, division:2 }; return upgradeState(s); }
-function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], copies:0, auto:{on:false,type:'balanced',pri:'normal'}, gear:{weapon:null,armor:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
+function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], copies:0, auto:{on:false,type:'balanced',pri:3}, gear:{weapon:null,armor:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; Object.values(s.roster).forEach(p=>p.auto??={on:false,type:'balanced',pri:'normal'});
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; Object.values(s.roster).forEach(p=>{p.auto??={on:false,type:'balanced',pri:3};p.auto.pri=autoRank(p.auto.pri);});
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -1245,11 +1257,12 @@ function setLineup(state,sel,id){if(!state.roster[id]||!sel||!['squad','bench'].
   if(where)state[where[0]][where[1]]=cur??null;list[i]=id;return true;}
 function clearBench(state,i){if(!state.bench?.[i])return false;state.bench[i]=null;return true;}
 // ── 자동 훈련 ──
-// 학생마다 반복 훈련(종류·우선순위)을 켜 두면 하루가 지날 때마다 우선순위 높은 순(같으면 선발 먼저)으로 훈련합니다.
+// 학생마다 반복 훈련(종류·우선순위)을 켜 두면 하루가 지날 때마다 1순위부터(같은 순위면 선발 먼저) 훈련합니다.
 // 골드가 '남길 골드' 아래로 내려가거나 피로가 상한 이상인 학생은 건너뜁니다. 균형은 공격→방어→민첩을 돌아가며.
-const AUTO_TYPES={balanced:'균형',attack:'공격',defense:'방어',speed:'민첩'},AUTO_PRI={high:'높음',normal:'보통',low:'낮음'};
-const PRI_RANK={high:0,normal:1,low:2};
-function autoQueue(state){const ids=Object.keys(state.roster);return ids.filter(id=>state.roster[id].auto?.on).sort((a,b)=>PRI_RANK[state.roster[a].auto.pri||'normal']-PRI_RANK[state.roster[b].auto.pri||'normal']||(state.squad.includes(b)-state.squad.includes(a))||ids.indexOf(a)-ids.indexOf(b));}
+// 우선순위는 1~5순위(1이 먼저). 예전 세이브의 높음·보통·낮음은 1·3·5순위로 바꿉니다.
+const AUTO_TYPES={balanced:'균형',attack:'공격',defense:'방어',speed:'민첩'},AUTO_PRI={1:'1순위',2:'2순위',3:'3순위',4:'4순위',5:'5순위'};
+function autoRank(v){const old={high:1,normal:3,low:5}[v];const n=old??Number(v);return n>=1&&n<=5?Math.round(n):3;}
+function autoQueue(state){const ids=Object.keys(state.roster);return ids.filter(id=>state.roster[id].auto?.on).sort((a,b)=>autoRank(state.roster[a].auto.pri)-autoRank(state.roster[b].auto.pri)||(state.squad.includes(b)-state.squad.includes(a))||ids.indexOf(a)-ids.indexOf(b));}
 function autoTrainDay(state){const cfg=state.autoTrain;if(!cfg?.on)return null;const out={day:state.day,trained:[],tired:[],broke:[],team:null,spent:0},g0=state.gold;
   autoQueue(state).forEach((id,i)=>{const p=state.roster[id];if(p.trained===state.day)return;if(p.fatigue>=cfg.fatigueCap){out.tired.push(id);return;}if(state.gold-TRAIN_COST<cfg.reserve){out.broke.push(id);return;}const type=p.auto.type==='balanced'?['attack','defense','speed'][(state.day+i)%3]:p.auto.type;if(train(state,id,type))out.trained.push({id,type});});
   if(cfg.team&&state.teamTrained!==state.day&&state.gold-TEAM_TRAIN_COST>=cfg.reserve)out.team=teamTrain(state,cfg.team)||null;
@@ -2335,7 +2348,7 @@ return `<button class="growth-strip ${can?'can-break':''}" data-action="characte
 const RARITY_RANK={SSR:3,SR:2,R:1};
 const SORTS={recent:['영입순',id=>0],level:['레벨',(id,p)=>p.level*1e4+p.xp],rarity:['등급',id=>RARITY_RANK[char(id).rarity]||0],power:['전투력',id=>partyPower(state,[id])],atk:['공격력',(id,p,s)=>s.atk],hp:['체력',(id,p,s)=>s.maxHp],def:['방어력',(id,p,s)=>s.def],speed:['속도',(id,p,s)=>s.speed],stars:['돌파',(id,p)=>(p.stars||0)*100+(p.copies||0)],awaken:['각성',(id,p)=>p.awaken||0],fatigue:['피로',(id,p)=>p.fatigue],affinity:['호감도',(id,p)=>p.affinity||0],mvp:['MVP',(id,p)=>p.mvp||0]};
 function sortedRoster(kind='roster'){const key=SORTS[settings[kind+'Sort']]?settings[kind+'Sort']:'recent',dir=settings[kind+'Dir']==='asc'?1:-1,ids=Object.keys(state.roster),order=new Map(ids.map((id,i)=>[id,i]));if(key==='recent')return dir<0?ids:[...ids].reverse();const val=new Map(ids.map(id=>{const p=state.roster[id];return [id,SORTS[key][1](id,p,stats(id,p,unitBonus(state,id)))];}));return ids.sort((a,b)=>(val.get(a)-val.get(b))*dir||(state.squad.includes(b)-state.squad.includes(a))||order.get(a)-order.get(b));}
-function sortBar(kind='roster',note=''){const key=SORTS[settings[kind+'Sort']]?settings[kind+'Sort']:'recent',asc=settings[kind+'Dir']==='asc';return `<div class="sort-bar"><span class="sort-label">${icon('records',15)} 정렬</span><div class="sort-chips">${Object.entries(SORTS).map(([k,[l]])=>`<button class="sort-chip ${key===k?'selected':''}" data-action="roster-sort" data-kind="${kind}" data-sort="${k}">${l}</button>`).join('')}</div><button class="sort-dir" data-action="roster-dir" data-kind="${kind}" title="정렬 방향 바꾸기">${asc?'▲ 낮은 순':'▼ 높은 순'}</button>${note?`<small class="sort-note">${note}</small>`:''}</div>`;}
+function sortBar(kind='roster',note=''){const key=SORTS[settings[kind+'Sort']]?settings[kind+'Sort']:'recent',asc=settings[kind+'Dir']==='asc';return `<div class="sort-bar"><span class="sort-label">${icon('records',15)} 정렬</span><label class="sort-select"><select data-sort-select="${kind}" aria-label="정렬 기준">${Object.entries(SORTS).map(([k,[l]])=>`<option value="${k}" ${key===k?'selected':''}>${l}</option>`).join('')}</select></label><button class="sort-dir" data-action="roster-dir" data-kind="${kind}" title="정렬 방향 바꾸기">${asc?'▲ 낮은 순':'▼ 높은 순'}</button>${note?`<small class="sort-note">${note}</small>`:''}</div>`;}
 
 
 // 전술 연구실 화면
@@ -2392,10 +2405,10 @@ function bagPanel(){return `<div class="panel bag-panel"><b>${icon('book',16)} �
 function trainOrder(){const ids=sortedRoster('train');return [...ids.filter(id=>state.squad.includes(id)),...ids.filter(id=>!state.squad.includes(id))];}
 const opt=(list,cur)=>Object.entries(list).map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?'selected':''}>${l}</option>`).join('');
 // 학생별 반복 훈련: 켜면 하루가 지날 때마다 자동으로 훈련합니다.
-function autoControls(id,p){const a=p.auto||{},q=autoQueue(state),rank=q.indexOf(id);return `<div class="auto-ctrl"><label class="auto-switch"><input type="checkbox" data-auto="on" data-id="${id}" ${a.on?'checked':''}><span>반복 훈련</span></label><select data-auto="type" data-id="${id}" aria-label="반복 훈련 종류" ${a.on?'':'disabled'}>${opt(AUTO_TYPES,a.type)}</select><select data-auto="pri" data-id="${id}" aria-label="우선순위" ${a.on?'':'disabled'}>${opt(AUTO_PRI,a.pri)}</select>${a.on&&rank>=0?`<em class="auto-rank">${rank+1}순위</em>`:''}</div>`;}
+function autoControls(id,p){const a=p.auto||{},q=autoQueue(state),rank=q.indexOf(id);return `<div class="auto-ctrl"><label class="auto-switch"><input type="checkbox" data-auto="on" data-id="${id}" ${a.on?'checked':''}><span>반복 훈련</span></label><select data-auto="type" data-id="${id}" aria-label="반복 훈련 종류" ${a.on?'':'disabled'}>${opt(AUTO_TYPES,a.type)}</select><label class="auto-pri">우선순위<select data-auto="pri" data-id="${id}" aria-label="우선순위" ${a.on?'':'disabled'}>${opt(AUTO_PRI,a.pri)}</select></label>${a.on&&rank>=0?`<em class="auto-rank">훈련 순서 ${rank+1}번째</em>`:''}</div>`;}
 // 자동 훈련 설정: 전체 켜기, 남길 골드, 피로 상한, 전체 훈련 자동
 function autoPanel(){const cfg=state.autoTrain,q=autoQueue(state),cost=q.length*TRAIN_COST+(cfg.team?TEAM_TRAIN_COST:0),last=state.lastAuto,name=id=>char(id).shortName||char(id).name;
- return `<section class="panel auto-panel ${cfg.on?'on':''}"><div class="auto-head"><div><h3>⟳ 자동 훈련</h3><p>반복 훈련을 켠 학생은 하루가 지날 때마다 우선순위 순서로 자동 훈련해요. 골드가 '남길 골드'보다 적어지면 거기서 멈춰요.</p></div><button class="btn ${cfg.on?'primary':''}" data-action="auto-master">${cfg.on?'자동 훈련 켜짐':'자동 훈련 꺼짐'}</button></div>
+ return `<section class="panel auto-panel ${cfg.on?'on':''}"><div class="auto-head"><div><h3>⟳ 자동 훈련</h3><p>반복 훈련을 켠 학생은 하루가 지날 때마다 1순위부터 차례로 자동 훈련해요(같은 순위면 선발 먼저). 골드가 '남길 골드'보다 적어지면 거기서 멈춰요.</p></div><button class="btn ${cfg.on?'primary':''}" data-action="auto-master">${cfg.on?'자동 훈련 켜짐':'자동 훈련 꺼짐'}</button></div>
  <div class="auto-cfg"><label>남길 골드<select data-auto-cfg="reserve">${opt({0:'0 G',500:'500 G',1000:'1,000 G',3000:'3,000 G',5000:'5,000 G',10000:'10,000 G'},cfg.reserve)}</select></label><label>피로 상한<select data-auto-cfg="fatigueCap">${opt({40:'40% 이상 쉼',50:'50% 이상 쉼',60:'60% 이상 쉼',70:'70% 이상 쉼',90:'제한 없음'},cfg.fatigueCap)}</select></label><label>전체 훈련 자동<select data-auto-cfg="team"><option value="">하지 않음</option>${TEAM_DRILLS.map(d=>`<option value="${d.id}" ${cfg.team===d.id?'selected':''}>${d.icon} ${d.name}</option>`).join('')}</select></label><div class="auto-bulk"><button class="btn small" data-action="auto-all" data-on="1">모두 반복 켜기</button><button class="btn small" data-action="auto-all" data-on="0">모두 끄기</button></div></div>
  <div class="auto-sum"><span>반복 대상 <b>${q.length}명</b> · 하루 최대 <b>${fmt(cost)} G</b></span>${q.length?`<span class="auto-q">${q.slice(0,8).map((id,i)=>`${i+1}. ${name(id)}`).join(' · ')}${q.length>8?' …':''}</span>`:''}${last&&last.day===state.day?`<span class="auto-last">오늘 자동 훈련: ${last.trained.length?last.trained.map(t=>name(t.id)).join(', '):'없음'}${last.team?` · 전체 훈련 ${TEAM_DRILLS.find(d=>d.id===last.team.id).name}`:''} · −${fmt(last.spent)} G${last.tired.length?` · 피로로 쉼 ${last.tired.length}명`:''}${last.broke.length?` · 골드 부족 ${last.broke.length}명`:''}</span>`:''}</div></section>`;}
 // 전체 훈련 · 팀 컬러: 하루 한 번 팀 훈련 단계를 올리고, 그중 하나를 팀 컬러로 지정합니다.
@@ -2724,7 +2737,9 @@ function presentCompetitionResults(){if($('#title-screen')||$('#result-board')||
 document.addEventListener('competition-result-closed',e=>{render();const {report,replay,celebrate}=e.detail,t=state.trophies.find(t=>t.type===report.type&&t.season===report.season);if(celebrate&&t){showChampionship(t,replay);return;}if(!presentCompetitionResults()&&state.sacked)sackedModal();});
 document.addEventListener('championship-closed',()=>{if(!presentCompetitionResults()&&state.sacked)sackedModal();});
 // 자동 훈련 설정 변경 (학생별 반복·종류·우선순위, 전체 설정)
-document.addEventListener('change',e=>{const ds=e.target.dataset;if(ds.auto){const p=state.roster[ds.id];if(!p)return;if(ds.auto==='on')p.auto.on=e.target.checked;else p.auto[ds.auto]=e.target.value;save();render();return;}if(ds.autoCfg){const v=e.target.value;state.autoTrain[ds.autoCfg]=ds.autoCfg==='team'?(v||null):Number(v);save();render();}});
+document.addEventListener('change',e=>{const ds=e.target.dataset;if(ds.auto){const p=state.roster[ds.id];if(!p)return;if(ds.auto==='on')p.auto.on=e.target.checked;else p.auto[ds.auto]=ds.auto==='pri'?Number(e.target.value):e.target.value;save();render();return;}if(ds.autoCfg){const v=e.target.value;state.autoTrain[ds.autoCfg]=ds.autoCfg==='team'?(v||null):Number(v);save();render();}});
+// 정렬 목록: 기준을 고르면 기본 방향(피로는 낮은 순, 나머지는 높은 순)으로 정렬합니다.
+document.addEventListener('change',e=>{const kind=e.target.dataset?.sortSelect;if(!kind)return;const k=e.target.value;settings[kind+'Sort']=k;settings[kind+'Dir']=k==='fatigue'?'asc':'desc';saveSettings();render();});
 
 </script>
 </body>

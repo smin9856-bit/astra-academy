@@ -572,11 +572,11 @@ function formationPositions(state) {
 }
 function arenaPosition(p) { return { x:Math.round(70+clamp01(p.x)*350), y:Math.round(105+clamp01(p.y)*210) }; }
 function freshState() { const s={ version:1, day:1, season:1, gold:3200, gems:3600, pity:0, squad:['aria','rin','luna','sylvie','noel'], roster:Object.fromEntries(CHARACTERS.slice(0,5).map(c=>[c.id,newProgress()])), tactics:{...DEFAULT_TACTICS}, history:[], match:0, division:2 }; return upgradeState(s); }
-function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], copies:0, auto:{on:false,type:'balanced',pri:'normal'}, gear:{weapon:null,armor:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
+function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], copies:0, auto:{on:false,type:'balanced',pri:3}, gear:{weapon:null,armor:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; Object.values(s.roster).forEach(p=>p.auto??={on:false,type:'balanced',pri:'normal'});
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; Object.values(s.roster).forEach(p=>{p.auto??={on:false,type:'balanced',pri:3};p.auto.pri=autoRank(p.auto.pri);});
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -808,11 +808,12 @@ function setLineup(state,sel,id){if(!state.roster[id]||!sel||!['squad','bench'].
   if(where)state[where[0]][where[1]]=cur??null;list[i]=id;return true;}
 function clearBench(state,i){if(!state.bench?.[i])return false;state.bench[i]=null;return true;}
 // ── 자동 훈련 ──
-// 학생마다 반복 훈련(종류·우선순위)을 켜 두면 하루가 지날 때마다 우선순위 높은 순(같으면 선발 먼저)으로 훈련합니다.
+// 학생마다 반복 훈련(종류·우선순위)을 켜 두면 하루가 지날 때마다 1순위부터(같은 순위면 선발 먼저) 훈련합니다.
 // 골드가 '남길 골드' 아래로 내려가거나 피로가 상한 이상인 학생은 건너뜁니다. 균형은 공격→방어→민첩을 돌아가며.
-const AUTO_TYPES={balanced:'균형',attack:'공격',defense:'방어',speed:'민첩'},AUTO_PRI={high:'높음',normal:'보통',low:'낮음'};
-const PRI_RANK={high:0,normal:1,low:2};
-function autoQueue(state){const ids=Object.keys(state.roster);return ids.filter(id=>state.roster[id].auto?.on).sort((a,b)=>PRI_RANK[state.roster[a].auto.pri||'normal']-PRI_RANK[state.roster[b].auto.pri||'normal']||(state.squad.includes(b)-state.squad.includes(a))||ids.indexOf(a)-ids.indexOf(b));}
+// 우선순위는 1~5순위(1이 먼저). 예전 세이브의 높음·보통·낮음은 1·3·5순위로 바꿉니다.
+const AUTO_TYPES={balanced:'균형',attack:'공격',defense:'방어',speed:'민첩'},AUTO_PRI={1:'1순위',2:'2순위',3:'3순위',4:'4순위',5:'5순위'};
+function autoRank(v){const old={high:1,normal:3,low:5}[v];const n=old??Number(v);return n>=1&&n<=5?Math.round(n):3;}
+function autoQueue(state){const ids=Object.keys(state.roster);return ids.filter(id=>state.roster[id].auto?.on).sort((a,b)=>autoRank(state.roster[a].auto.pri)-autoRank(state.roster[b].auto.pri)||(state.squad.includes(b)-state.squad.includes(a))||ids.indexOf(a)-ids.indexOf(b));}
 function autoTrainDay(state){const cfg=state.autoTrain;if(!cfg?.on)return null;const out={day:state.day,trained:[],tired:[],broke:[],team:null,spent:0},g0=state.gold;
   autoQueue(state).forEach((id,i)=>{const p=state.roster[id];if(p.trained===state.day)return;if(p.fatigue>=cfg.fatigueCap){out.tired.push(id);return;}if(state.gold-TRAIN_COST<cfg.reserve){out.broke.push(id);return;}const type=p.auto.type==='balanced'?['attack','defense','speed'][(state.day+i)%3]:p.auto.type;if(train(state,id,type))out.trained.push({id,type});});
   if(cfg.team&&state.teamTrained!==state.day&&state.gold-TEAM_TRAIN_COST>=cfg.reserve)out.team=teamTrain(state,cfg.team)||null;
