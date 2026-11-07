@@ -60,7 +60,7 @@ function battleMotion(u,battle,clock=battle.time){
 // Nine-element expansion. Pure data shared by game, lore, art and build tools.
 const EXPANSION_HEROES = [
  {id:'torres',name:'페르난도 토레스',shortName:'토레스',surname:'엘 니뇨 (기사)',element:'불',role:'전사',rarity:'SSR',age:42,hp:1040,atk:116,def:32,speed:85,range:40,color:'#f4cf79',hair:'#e8c779',weapon:'football',skill:'완벽한 역습',ultimate:'안필드의 기억',passive:'엘 니뇨의 침투',passiveDesc:'전투 합류 시 45% 확률로 6초간 침투: 공격력 +20%, 이동 속도 +40%. 각성 2단계에는 발동 확률 65%.',skillDesc:'후열로 돌진한 뒤 공격력 260%의 슛. 처치하면 재사용 대기시간 60% 감소. 재사용 8~11초.',ultimateDesc:'한 명에게 공격력 420%의 결정적인 슛. 처치 시 8초간 엘 니뇨: 공격력 +35%, 이동 속도 +45%. 첫 발동 11초 · 재사용 24초.',academy:'엘리오스 판타지 아카데미 (특별 전형)',year:'3학년 (편입생)',height:'186cm',birthday:'3월 20일',likes:'역습, 침투, 단독 찬스, 리버풀, 엘 니뇨',dislikes:'오프사이드, 빈 찬스, 머리로 넣기(?)',bio:'엘 니뇨라 불리는 전설의 기사. 한때 사라졌던 붉은 돌풍이지만, 언제나 다시 달려와 골을 박아 넣는다.',quote:'엘 니뇨는… 돌아온다!',outfit:'등번호 9 유니폼 · 은금 기사 갑옷 · 사자 문장 붉은 망토',motif:'기사검 / 역습 / 붉은 돌풍',home:'엘리오스 특별 전형 · 붉은 기사단',dream:'마지막까지 다시 달려오는 기사',secret:'매일 오프사이드 라인을 자로 그려 연습한다.',friends:['ronaldo','rin']},
- {id:'ignis',name:'이그니스',surname:'심장을 벼리는 불꽃',element:'불',role:'탱커',rarity:'SSR',age:28,hp:1300,atk:70,def:51,speed:36,range:38,color:'#ef8961',hair:'#c96839',weapon:'hammer',skill:'용광로의 맹세',skillType:'forge',passive:'달아오른 강철',passiveType:'hotArmor',passiveDesc:'체력이 절반 이하일 때 받는 피해 18% 감소. 각성 2단계에는 25%.',skillDesc:'아군 전원에게 시전자 최대 체력 12%의 보호막을 5초간 부여. 보호막이 남아 있는 동안 그 아군 근처의 적은 1초마다 공격력 22%의 불꽃 피해.',bio:'엠버 공방에서 온 장학생. 동료의 갑옷은 밤새 고쳐도 자기 장갑의 구멍은 잊곤 한다.',quote:'겁내지 마. 강철도 불 속에서 단단해지니까.',outfit:'흑철·구리 중갑 · 붉은 목도리 · 용암 균열 대형 망치',motif:'용광로 / 망치 / 불씨',home:'엠버 화산 공방',dream:'동료 모두에게 돌아올 갑옷을 만들어 주기',secret:'망치 손잡이 안에 가족사진을 넣어 두었다.',friends:['theo','rin']},
+ {id:'ignis',name:'이그니스',surname:'심장을 벼리는 불꽃',element:'불',role:'탱커',rarity:'SSR',age:28,hp:1300,atk:70,def:62,speed:36,range:38,color:'#ef8961',hair:'#c96839',weapon:'hammer',skill:'용광로의 맹세',skillType:'forge',passive:'용광로의 심장',passiveType:'hotArmor',passiveDesc:'공격을 받을 때마다 방어력 +2(최대 +30). 5초마다 주변 적에게 자신의 방어력 70%만큼 불꽃 피해. 각성 2단계에는 방어력 +3씩(최대 +45).',skillDesc:'아군 전원에게 시전자 최대 체력 12%의 보호막을 5초간 부여하고, 5초 동안 모든 능력(공격·방어·이동 속도·공격 속도) +20%.',bio:'엠버 공방에서 온 장학생. 동료의 갑옷은 밤새 고쳐도 자기 장갑의 구멍은 잊곤 한다.',quote:'겁내지 마. 강철도 불 속에서 단단해지니까.',outfit:'흑철·구리 중갑 · 붉은 목도리 · 용암 균열 대형 망치',motif:'용광로 / 망치 / 불씨',home:'엠버 화산 공방',dream:'동료 모두에게 돌아올 갑옷을 만들어 주기',secret:'망치 손잡이 안에 가족사진을 넣어 두었다.',friends:['theo','rin']},
  {id:'maren',name:'마렌',surname:'조수를 읽는 항해사',element:'물',role:'마법사',rarity:'SSR',age:26,hp:740,atk:123,def:24,speed:49,range:170,color:'#61b7d4',hair:'#284b79',weapon:'staff',skill:'만조의 항로',skillType:'tide',passive:'깊은 물결',passiveType:'deepWater',passiveDesc:'체력이 70% 이상인 대상에게 피해 +18%. 각성 2단계에는 +26%.',skillDesc:'대상 주변에 공격력 180%의 파도 피해와 2초 둔화. 가장 다친 아군을 공격력 100%만큼 치유.',bio:'별 대신 조수표를 읽는 해양 마법 전공생. 전술판의 빈칸을 항로처럼 이어 승리할 길을 찾는다.',quote:'코치, 이 물결에 올라타요. 목적지는 승리예요.',outfit:'남색 땋은 머리 · 삼각 제독모 · 남색·백색 해군 코트 · 보석 육분의',motif:'조수 / 육분의 / 사파이어',home:'마리나 해양 관측소',dream:'폭풍 속에서도 누구도 잃지 않는 항해',secret:'수영보다 지도 그리기를 훨씬 잘한다.',friends:['finn','nerise']},
  {id:'nerise',name:'네리스',surname:'진주빛 삼지창',element:'물',role:'전사',rarity:'SR',age:21,hp:970,atk:103,def:33,speed:66,range:45,color:'#78d0c7',hair:'#b3b7e8',weapon:'spear',skill:'진주 파쇄',skillType:'pierce',passive:'해류의 인장',passiveType:'tideMark',passiveDesc:'같은 대상을 3회 공격할 때마다 추가 피해 +40%. 각성 2단계에는 +60%.',skillDesc:'공격력 250%의 창격 후 최대 체력 12%의 보호막을 3초간 획득.',bio:'산호 왕국의 외교 장학생. 엄숙한 예법보다 수족관의 물고기들에게 이름을 붙이는 일이 더 즐겁다.',quote:'물러서세요. 진주도 깨질 때는 날카롭답니다.',outfit:'연보랏빛 아쿠아 양갈래 · 진주 왕관 · 비늘 흉갑 · 황금 삼지창',motif:'진주 / 산호 / 해류',home:'산호 왕국 아쿠아리움',dream:'육지와 바다가 서로의 노래를 듣게 하기',secret:'훈련장 분수에 몰래 이름을 붙였다.',friends:['maren','noel']},
  {id:'zephyr',name:'제피르',surname:'하늘길의 배달부',element:'바람',role:'암살자',rarity:'SR',age:23,hp:760,atk:112,def:21,speed:96,range:34,color:'#9bdcc6',hair:'#c4e4d6',weapon:'dagger',skill:'순풍 우편',skillType:'windDash',passive:'가벼운 발걸음',passiveType:'tailwind',passiveDesc:'전투 합류 후 5초 동안 이동 속도 +35%, 첫 타격 피해 +30%. 각성 2단계에는 첫 타격 +45%.',skillDesc:'후열 적에게 이동해 공격력 235% 피해. 3초간 받는 피해 20% 감소.',bio:'공중도시의 우편 배달부 출신. 지각 사유서는 한 번도 낸 적 없지만, 창문으로 출석하는 버릇은 여전하다.',quote:'승리 소식, 특급 배송으로 보내 줄게!',outfit:'민트빛 짧은 머리 · 비행 고글 · 흰색 초록 코트 · 깃털 목도리',motif:'우편 / 고글 / 쌍곡도',home:'공중도시 에어리움',dream:'아무도 닿지 못한 곳까지 편지를 배달하기',secret:'자신에게 온 첫 편지를 아직 뜯지 못했다.',friends:['sylvie','aerin']},
@@ -457,7 +457,7 @@ const HERO_LORE = {
     speech:'우아하고 연극적인 존댓말 “~랍니다, ~군요”. 미학을 논하길 좋아한다.',
     story:'결투가 가문의 딸로, 아버지는 1등만 기억하는 사람이었다. 승패보다 아름다운 한 수를 추구한다고 말하지만, 그 말 뒤에는 지는 것에 대한 두려움이 숨어 있다. 결투부 부장.',
     relations:[['rin','검술부 라이벌. 거칠지만 솔직한 검이 부럽다'],['theo','놀리는 재미가 있는 후배'],['seraph','우아함을 아는 동지']],
-    lines:{ greet:['좋은 아침이랍니다, 코치. 오늘도 아름답게 시작하죠.','장미가 피었어요. 좋은 징조군요.'], talk:['승리에도 품격이 필요하답니다. 린은 이해 못 하지만요.','테오 군이 또 메모를 하고 있더군요. 귀여워서 그만.','무도회 같은 경기를 하고 싶어요. 모두가 숨을 멈추는.','…지는 건, 생각보다 싫어요. 비밀이랍니다.'], train:['한 번 더, 더 우아하게.','검로가 아직 거칠군요.'], win:['아름다운 마무리였어요.','박수는 사양하지 않겠어요.'], lose:['…추한 패배군요. 다시는 없을 거예요.','오늘의 실수, 장미 가시처럼 새겨 두겠어요.'], mvp:['당연하지만… 기쁘네요. 아주.','이 영광, 무대 위의 모두에게 바치겠어요.'], skill:['장미처럼, 아름답게!','홍련참… 우아하게!'], tired:['…오늘은 무대에 서고 싶지 않군요.'], happy:['오늘의 검은 춤을 추는 것 같아요!'] }
+    lines:{ greet:['좋은 아침이랍니다, 코치. 오늘도 아름답게 시작하죠.','장미가 피었어요. 좋은 징조군요.'], talk:['승리에도 품격이 필요하답니다. 린은 이해 못 하지만요.','테오 군이 또 메모를 하고 있더군요. 귀여워서 그만.','무도회 같은 경기를 하고 싶어요. 모두가 숨을 멈추는.','…지는 건, 생각보다 싫어요. 비밀이랍니다.'], train:['한 번 더, 더 우아하게.','검로가 아직 거칠군요.'], win:['아름다운 마무리였어요.','박수는 사양하지 않겠어요.'], lose:['…추한 패배군요. 다시는 없을 거예요.','오늘의 실수, 장미 가시처럼 새겨 두겠어요.'], mvp:['당연하지만… 기쁘네요. 아주.','이 영광, 무대 위의 모두에게 바치겠어요.'], skill:['장미처럼, 아름답게!','장미 검무… 우아하게!'], tired:['…오늘은 무대에 서고 싶지 않군요.'], happy:['오늘의 검은 춤을 추는 것 같아요!'] }
   },
   ronaldo: {
     hometown:'빛의 반도 마데이라 · 축구의 섬', likes:'골, 자신, 거울, Siuuu', dislikes:'패배, (메시), 나이 얘기', dream:'판타지 아카데미 역사상 최고의 GOAT', secret:'거울 앞 연습이 끝나면 팀원 이름을 하나씩 외치며 응원 연습도 한다.',
@@ -471,7 +471,7 @@ const HERO_LORE = {
 // 고유 패시브 (효과는 engine.js의 Battle에서 처리)
 const PASSIVES = {
   aria:{ name:'여명의 수호', desc:'아리아가 살아 있는 동안, 아리아 주변 아군이 받는 피해 −12%.' },
-  rin:{ name:'홍련의 연격', desc:'같은 대상을 연속으로 공격할 때마다 공격력 +6% (최대 5중첩). 대상이 바뀌면 초기화.' },
+  rin:{ name:'홍련의 연격', desc:'기본 공격이 맞으면 같은 대상을 곧바로 한 번 더 베어, 그 공격의 70% 피해를 줍니다.' },
   luna:{ name:'별의 계시', desc:'성운 폭발이 적 2명 이상을 맞히면 다음 스킬 재사용 대기 −40%.' },
   sylvie:{ name:'바람의 걸음', desc:'15% 확률로 공격을 회피합니다.' },
   noel:{ name:'새벽의 기도', desc:'아군의 체력이 처음 35% 이하로 떨어지면 즉시 공격력 150%만큼 회복 (아군마다 전투당 한 번).' },
@@ -500,7 +500,7 @@ const DUO_STORIES = {
 // 각성 3단계에서 바뀌는 스킬 이름
 const AWAKEN_SKILLS = { aria:'여명의 성채', rin:'홍련참·극', luna:'초신성', sylvie:'폭풍 연사', noel:'여명의 대찬가', kael:'월식 처형', seraph:'절대영도', yuzu:'천뢰 일섬', theo:'불굴의 철벽', mika:'대폭발 블룸', finn:'해일 연사', rose:'장미 결투·종막', ronaldo:'골든 부트' };
 // 각성 2단계에서 강화되는 패시브 수치
-const AWAKENED_PASSIVE = { aria:'주변 아군 받는 피해 −18%', rin:'중첩당 공격력 +9%', luna:'재사용 대기 −55%', sylvie:'회피 확률 22%', noel:'공격력 220%만큼 회복', kael:'처형 피해 +45%', seraph:'둔화된 적 받는 피해 +25%', yuzu:'질주 9초', theo:'방어력 +3씩, 최대 +45', mika:'폭발 확률 45%', finn:'원거리 피해 +32%', rose:'치명타 +15%p · 치명타 피해 220%', ronaldo:'능력치 +6%' };
+const AWAKENED_PASSIVE = { aria:'주변 아군 받는 피해 −18%', rin:'연격 피해 90%', luna:'재사용 대기 −55%', sylvie:'회피 확률 22%', noel:'공격력 220%만큼 회복', kael:'처형 피해 +45%', seraph:'둔화된 적 받는 피해 +25%', yuzu:'질주 9초', theo:'방어력 +3씩, 최대 +45', mika:'폭발 확률 45%', finn:'원거리 피해 +32%', rose:'치명타 +15%p · 치명타 피해 220%', ronaldo:'능력치 +6%' };
 Object.entries(AWAKENED_PASSIVE).forEach(([id,text])=>{PASSIVES[id].awakened=text;});
 Object.assign(HERO_LORE,EXPANSION_LORE);
 for(const c of EXPANSION_HEROES){PASSIVES[c.id]={name:c.passive,desc:c.passiveDesc,awakened:c.passiveDesc.match(/각성 2단계에는 (.+)/)?.[1]||'기본 능력치 +6%'};AWAKEN_SKILLS[c.id]=c.skill+' · 극';}
@@ -523,7 +523,7 @@ const CHARACTERS = [
   { id:'theo', name:'테오', surname:'철벽의 신입생', role:'탱커', rarity:'R', hair:'#ba8463', shade:'#795548', color:'#dca981', eye:'#80b9db', weapon:'sword', style:'short', hp:1150, atk:56, def:48, speed:31, range:32, skill:'여명의 방패', bio:'조금 서툴지만 하루도 훈련을 거르지 않는 노력파. 방패 뒷면에 코치의 조언을 빼곡히 적어 두었다.', quote:'한 번 더! 이번에는 할 수 있습니다.' },
   { id:'mika', name:'미카', surname:'꽃잎의 연금술사', role:'서포터', rarity:'R', hair:'#c991b0', shade:'#885b82', color:'#e2a2ce', eye:'#b3daf0', weapon:'heal', style:'pony', hp:720, atk:49, def:23, speed:45, range:165, skill:'새벽의 찬가', bio:'작은 온실에서 치유 약초를 키우는 연금술 전공생. 가끔 물약이 폭발해도 웃음을 잃지 않는다.', quote:'오늘 물약은 딸기 맛이야. 아마도!' },
   { id:'finn', name:'핀', surname:'푸른 깃의 전령', role:'궁수', rarity:'R', hair:'#83b8ce', shade:'#4c7899', color:'#87c6de', eye:'#e9c379', weapon:'bow', style:'short', hp:670, atk:88, def:18, speed:75, range:185, skill:'질풍 연사', bio:'고향 바다처럼 시원한 성격의 궁수. 멀리 있는 표적을 맞힐 때면 항상 한쪽 눈을 찡긋한다.', quote:'저기 끝에 있는 표적까지, 맡겨 줘.' },
-  { id:'rose', name:'로제', surname:'장미의 결투가', role:'전사', rarity:'R', hair:'#b57991', shade:'#714764', color:'#cf8ca7', eye:'#b8c78c', weapon:'katana', style:'long', hp:850, atk:92, def:26, speed:59, range:38, skill:'홍련참', bio:'우아한 검술을 추구하는 결투부 부장. 승패보다 아름다운 한 수를 좋아하지만 지는 것은 더 싫어한다.', quote:'자, 아름답게 마무리해 볼까요?' }
+  { id:'rose', name:'로제', surname:'장미의 결투가', role:'전사', rarity:'R', hair:'#b57991', shade:'#714764', color:'#cf8ca7', eye:'#b8c78c', weapon:'katana', style:'long', hp:850, atk:92, def:26, speed:59, range:38, skill:'장미 검무', bio:'우아한 검술을 추구하는 결투부 부장. 승패보다 아름다운 한 수를 좋아하지만 지는 것은 더 싫어한다.', quote:'자, 아름답게 마무리해 볼까요?' }
 ];
 CHARACTERS.push({id:'ronaldo',name:'크리스티아누 호날두',shortName:'호날두',surname:'축구의 왕 (자칭)',role:'전사',rarity:'SSR',element:'빛',hair:'#4d3c35',shade:'#261e26',color:'#f1cc76',eye:'#675044',weapon:'football',style:'short',hp:1080,atk:108,def:34,speed:77,range:42,skill:'호날두 킥',ultimate:'Siuuu!!',passive:'GOAT 멘탈',academy:'엘리오스 판타지 아카데미 (특별 전형)',year:'3학년 (유급 아님)',height:'187cm',birthday:'2월 5일',likes:'골, 자신, 거울, Siuuu',dislikes:'패배, (메시), 나이 얘기',bio:'자신을 축구의 왕이라 부르는 전설적인 축구 천재 학생. 지금도 더 완벽해지기 위해 매일 거울 앞에서 Siuuu를 연습하고 있다.',quote:'Siuuuuuu!'});
 // 속성 상성: 불 → 얼음 → 풀 → 땅 → 전기 → 물 → 불 순환, 빛과 어둠은 서로에게 강합니다. 유리하면 피해 ×1.25, 불리하면 ×0.8.
@@ -1000,8 +1000,8 @@ class Battle {
     this.units.push(u);return u;}
   // 영웅끼리 겹치지 않게: 같은 팀은 34px, 적끼리는 20px 안으로 붙으면 매 프레임 조금씩 떼어 놓습니다(근접 공격 거리는 유지). 돌진·넉백·공중 상태는 건드리지 않습니다.
   separate(dt){const us=this.units.filter(u=>u.alive&&!u.subbedOut&&!u.dash&&!u.knockback&&!(u.airUntil>this.time));for(let i=0;i<us.length;i++)for(let j=i+1;j<us.length;j++){const a=us[i],b=us[j],R=a.team===b.team?34:20;let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d>=R)continue;if(d<.01){dx=0;dy=(i%2?1:-1);d=1;}const push=Math.min(R-d,30*dt*8)/2,nx=dx/d,ny=dy/d,wx=.45,wy=1;a.x-=nx*push*wx;a.y-=ny*push*wy;b.x+=nx*push*wx;b.y+=ny*push*wy;for(const u of [a,b]){u.x=Math.max(40,Math.min(880,u.x));u.y=Math.max(100,Math.min(325,u.y));}}}
-  // 용광로 보호막: 보호막을 가진 아군 70px 안의 적은 1초마다 이그니스 공격력 22%의 불꽃 피해(적 하나당 한 번씩만)
-  furnaceBurn(dt){this.furnaceT=(this.furnaceT||0)+dt;if(this.furnaceT<1)return;this.furnaceT-=1;for(const e of this.units){if(!e.alive||e.subbedOut)continue;const holder=this.units.find(a=>a.alive&&a.team!==e.team&&a.furnace&&a.furnace.until>this.time&&a.shield>0&&Math.hypot(a.x-e.x,a.y-e.y)<70);const src=holder?.furnace.src;if(src?.alive)this.hit(src,e,src.atk*.22,true);}}
+  // 이그니스 패시브(용광로의 심장): 5초마다 주변(90px) 적에게 자기 방어력의 70%만큼 불꽃 피해
+  ignisPulse(dt){for(const u of this.units){if(!u.alive||u.subbedOut||u.passiveType!=='hotArmor')continue;u.pulseT=(u.pulseT||0)+dt;if(u.pulseT<5)continue;u.pulseT-=5;const near=this.units.filter(e=>e.team!==u.team&&e.alive&&!e.subbedOut&&Math.hypot(e.x-u.x,e.y-u.y)<90);if(!near.length)continue;this.effects.push({kind:'burst',x:u.x,y:u.y,color:'#ff8a3d',text:'',life:.6,total:.6});near.forEach(e=>this.hit(u,e,u.def*.7,true));}}
   log(text,type='normal'){this.events.unshift({time:this.time,text,type});if(this.events.length>80)this.events.pop();}
   sound(name){this.sfx.push(name);if(this.sfx.length>30)this.sfx.shift();}
   guarding(team){return this.teamTactics[team].stance==='guard'&&this.time<this.guardUntil[team];}
@@ -1039,12 +1039,12 @@ class Battle {
   }
   // 팀 컬러 레벨: 해당 팀이 이 훈련을 팀 컬러로 지정했을 때만 0보다 큽니다.
   tc(team,id){const c=this.teamColors?.[team];return c&&c.id===id?c.lv:0;}
-  hit(u,t,amount,skill=false,armorPierce=0){if(!u?.alive||!t?.alive)return 0;
+  hit(u,t,amount,skill=false,armorPierce=0){if(!u?.alive||!t?.alive)return 0;const rawAmount=amount;
     if(t.veil>0){t.veil--;t.flash=.12;this.effects.push({kind:'heal',x:t.x,y:t.y,color:'#d9a8ff',text:`월영의 베일 (${t.veil})`,life:.75,total:.75});return 0;}
     if(t.id==='sylvie'&&this.rng()<(t.awaken>=2?.22:.15)){this.effects.push({kind:'heal',x:t.x,y:t.y,color:'#a7f0b9',text:'회피',life:.7,total:.7});return;}
     if(skill&&u.skillVisual){const targets=u.skillVisual.targets??=[];if(!targets.some(v=>v.uid===t.uid))targets.push({uid:t.uid,x:t.x,y:t.y});}
     const missing=1-u.hp/u.maxHp,goat=u.id==='ronaldo';if(goat){u.goatStacks=u.goatStacks.filter(expire=>expire>this.time);amount*=(1+missing*.35+u.goatStacks.length*.1)*(u.siuuuUntil>this.time?1.3:1);}
-    // 고유 패시브: 린 연격, 카엘 처형, 핀 원거리, 세라핀 동토, 아리아 수호
+    // 고유 패시브: 카엘 처형, 핀 원거리, 세라핀 동토, 아리아 수호
     const aw2=u.awaken>=2;
     if(u.id==='torres')amount*=(u.infiltrationUntil>this.time?1.2:1)*(u.elNinoUntil>this.time?1.35:1);
     if(u.passiveType==='deepWater'&&t.hp/t.maxHp>=.7)amount*=aw2?1.26:1.18;
@@ -1055,26 +1055,30 @@ class Battle {
     if(u.passiveType==='frostChase'&&t.slow>0)amount*=aw2?1.3:1.2;
     if(u.passiveType==='rhythm'&&++u.rhythmHits%4===0)u.skillCd-=aw2?2.5:1.5;
     if(u.passiveType==='charge'&&!skill){amount*=1+Math.min(aw2?.3:.2,u.basicHits*.04);u.basicHits++;}
-    if(t.passiveType==='hotArmor'&&t.hp/t.maxHp<=.5)amount*=t.awaken>=2?.75:.82;
+    
     if(t.passiveType==='stoneHeart'&&t.hp/t.maxHp>=.5)amount*=t.awaken>=2?.8:.88;
     if(t.passiveType==='frostArmor'&&u.slow>0)amount*=t.awaken>=2?.72:.8;
     if(t.guardUntil>this.time)amount*=.8;
-    if(u.id==='rin'){u.rinStacks=u.lastTarget===t.uid?Math.min(5,u.rinStacks+1):0;u.lastTarget=t.uid;amount*=1+u.rinStacks*(aw2?.09:.06);}
     if(u.id==='kael'&&t.hp/t.maxHp<=.5)amount*=aw2?1.45:1.3;if(u.id==='finn'&&Math.hypot(t.x-u.x,t.y-u.y)>=150)amount*=aw2?1.32:1.2;if(t.slow>0)amount*=t.frost||1.15;
     const guard=this.units.find(a=>a.alive&&a.id==='aria'&&a.team===t.team&&Math.hypot(a.x-t.x,a.y-t.y)<=140);if(guard)amount*=guard.awaken>=2?.82:.88;
+    if(u.forgeUntil>this.time)amount*=1.2;if(t.forgeUntil>this.time)amount/=1.2;
     {const fd=this.tc(t.team,'formation'),fa=this.tc(u.team,'formation'),fin=this.tc(u.team,'finisher');if(fd&&t.line==='front')amount*=1-.03*fd;if(fa&&u.line==='back')amount*=1+.03*fa;if(fin&&t.hp/t.maxHp<=.5)amount*=1+.05*fin;}
     if(skill&&u.awaken>=3)amount*=1.3;if(this.guarding(t.team))amount*=GUARD_DEF;if(this.guarding(u.team)&&u.range<70)amount*=GUARD_COUNTER;
     const edge=elementEdge(u.element,t.element);amount*=edge>0?1.25:edge<0?.8:1;
     let crit=this.rng()<((u.crit??.12)+(goat?missing*.25:0));if(u.id==='yuzu'&&!u.struck){crit=true;u.struck=true;}let damage=Math.max(1,Math.round(amount*100/(100+t.def*(1-armorPierce))*(crit?(u.id==='rose'?(aw2?2.2:2):1.6):1)));const blocked=Math.min(t.shield,damage);t.shield-=blocked;damage=Math.min(t.hp,damage-blocked);
     if(damage>=t.hp&&t.guts&&!t.gutsUsed){damage=t.hp-1;t.gutsUsed=true;this.log(`${t.name} · 불굴! 체력 1로 버텨냅니다`,t.team===0?'good':'bad');this.effects.push({kind:'heal',x:t.x,y:t.y,color:'#ffd27a',text:'불굴!',life:1,total:1});}
     t.hp-=damage;t.taken+=damage;u.damage+=damage;t.flash=.18;
+    if(t.passiveType==='hotArmor'&&damage>0){const step=t.awaken>=2?3:2,cap=t.awaken>=2?45:30;t.forgeDef=t.forgeDef||0;if(t.forgeDef<cap){t.forgeDef+=step;t.def+=step;}}
     if(t.id==='theo'&&damage>0){const step=t.awaken>=2?3:2,cap=t.awaken>=2?45:30;if(t.theoDef<cap){t.theoDef+=step;t.def+=step;}}
     if(t.hp>0&&!t.saved&&t.hp/t.maxHp<=.35){const n=this.units.find(a=>a.alive&&a.id==='noel'&&a.team===t.team);if(n){t.saved=true;const heal=Math.min(t.maxHp-t.hp,Math.round(n.atk*(n.awaken>=2?2.2:1.5)*(n.heal||1)));t.hp+=heal;n.healing+=heal;this.effects.push({kind:'heal',x:t.x,y:t.y,color:'#ffe9a8',text:'새벽의 기도 +'+heal,life:1.1,total:1.1});this.log(`노엘 · 새벽의 기도 → ${t.name}`,t.team===0?'good':'bad');}}
     if(u.steal&&damage>0){const heal=Math.min(u.maxHp-u.hp,Math.round(damage*u.steal));u.hp+=heal;u.healing+=heal;}
     {const cl=this.tc(t.team,'counter');if(cl&&!skill&&!this.countering&&u.range<70&&t.hp>0&&damage>0&&this.rng()<.04*cl){this.countering=true;this.effects.push({kind:'heal',x:t.x,y:t.y-14,color:'#ffd27a',text:'반격!',life:.7,total:.7});this.hit(t,u,t.atk*.7);this.countering=false;}}
     this.effects.push({kind:skill?'burst':'hit',x:t.x,y:t.y,fromX:u.x,fromY:u.y,color:u.color,crit,edge,react:edge>0?ELEMENTS[u.element].react:null,text:damage?(crit?'✦ ':'')+damage:'방어',life:.65,total:.65});
     if(crit||skill)this.shake=Math.max(this.shake,crit?.22:.14);this.sound(crit?'crit':'hit');
-    if(t.hp<=0){t.alive=false;t.deathAt=this.time;t.action=null;t.cast=0;delete t.dash;u.kills++;this.shake=Math.max(this.shake,.45);this.sound('kill');this.feed.unshift({time:this.time,killer:u.shortName||u.name,victim:t.shortName||t.name,team:u.team});if(this.feed.length>5)this.feed.pop();if(u.id==='ronaldo'){u.goatStacks.push(this.time+8);this.log('호날두 · GOAT 멘탈 '+u.goatStacks.length+'중첩!',u.team===0?'good':'bad');}this.log(`<b class="kf t${u.team}">${u.name}</b> → <b class="kf t${t.team}">${t.name}</b> 전투 불능`,u.team===0?'good':'bad');}return damage;}
+    if(t.hp<=0){t.alive=false;t.deathAt=this.time;t.action=null;t.cast=0;delete t.dash;u.kills++;this.shake=Math.max(this.shake,.45);this.sound('kill');this.feed.unshift({time:this.time,killer:u.shortName||u.name,victim:t.shortName||t.name,team:u.team});if(this.feed.length>5)this.feed.pop();if(u.id==='ronaldo'){u.goatStacks.push(this.time+8);this.log('호날두 · GOAT 멘탈 '+u.goatStacks.length+'중첩!',u.team===0?'good':'bad');}this.log(`<b class="kf t${u.team}">${u.name}</b> → <b class="kf t${t.team}">${t.name}</b> 전투 불능`,u.team===0?'good':'bad');}
+    // 린 연격: 기본 공격이 맞으면 같은 대상을 한 번 더 벱니다(원래 공격의 70%, 각성 2단계 90%)
+    if(u.id==='rin'&&!skill&&!u.inFollowUp&&damage>0&&t.alive){u.inFollowUp=true;const fx0=this.effects.length;this.hit(u,t,rawAmount*(u.awaken>=2?.9:.7),false);u.inFollowUp=false;const fx=this.effects[fx0];if(fx&&fx.kind==='hit'){fx.text='연격 '+fx.text;fx.combo=true;}}
+    return damage;}
   healUnit(u,a,amount){if(!a.alive)return;amount*=1+.05*this.tc(a.team,'teamwork');const boost=u.passiveType==='bloomHeal'&&a.hp/a.maxHp<=.35?(u.awaken>=2?1.45:1.3):1,heal=Math.min(a.maxHp-a.hp,Math.round(amount*(u.heal||1)*(u.awaken>=3?1.3:1)*boost));a.hp+=heal;u.healing+=heal;this.effects.push({kind:'heal',x:a.x,y:a.y,color:'#a9e8bd',text:'+'+heal,life:1,total:1});}
   slowUnit(a,duration){if(a.slowImmuneUntil<=this.time)a.slow=Math.max(a.slow,duration);}
   shieldUnit(u,a,ratio,duration){a.shield+=Math.round(u.maxHp*ratio*(u.awaken>=3?1.3:1));a.shieldTime=Math.max(a.shieldTime,duration);this.effects.push({kind:'heal',x:a.x,y:a.y,color:u.color,text:'보호막',life:.9,total:.9});}
@@ -1088,7 +1092,7 @@ class Battle {
     if(u.id==='torres'){this.dash(u,enemies.sort((a,b)=>b.range-a.range)[0],2.6,'counter');return true;}
     switch(u.skillType){
       case 'forge':{// 용광로의 맹세: 아군 전원에게 보호막, 보호막이 남아 있는 동안 그 주변 적을 태웁니다
-        const until=this.time+5;this.units.filter(a=>a.team===u.team&&a.alive&&!a.subbedOut).forEach(a=>{this.shieldUnit(u,a,.12,5);a.furnace={src:u,until};});break;}
+        const until=this.time+5;this.units.filter(a=>a.team===u.team&&a.alive&&!a.subbedOut).forEach(a=>{this.shieldUnit(u,a,.12,5);a.forgeUntil=until;});this.log(`${u.name} · 용광로의 맹세! 아군 전원 보호막 · 능력 +20%`,u.team===0?'good':'bad');break;}
       case 'tide':near(t.x,t.y,135).forEach(a=>{this.hit(u,a,u.atk*1.8,true);this.slowUnit(a,2);});this.healUnit(u,allies.sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0],u.atk);break;
       case 'pierce':this.hit(u,t,u.atk*2.5,true);this.shieldUnit(u,u,.12,3);break;
       case 'windDash':this.dash(u,enemies.sort((a,b)=>b.range-a.range)[0],2.35,'wind');break;
@@ -1120,6 +1124,8 @@ class Battle {
     else if(u.role==='마법사'){const hits=this.units.filter(a=>a.team!==u.team&&a.alive&&Math.hypot(a.x-t.x,a.y-t.y)<135);hits.forEach(a=>{this.hit(u,a,u.atk*1.9,true);if(u.id==='seraph'){a.slow=3;a.frost=u.awaken>=2?1.25:1.15;}});if(u.id==='luna'&&hits.length>=2){u.skillCd*=u.awaken>=2?.45:.6;this.effects.push({kind:'heal',x:u.x,y:u.y,color:'#c9b4ff',text:'별의 계시',life:1,total:1});}}
     else if(u.role==='암살자'){const back=this.units.filter(a=>a.team!==u.team&&a.alive).sort((a,b)=>b.range-a.range)[0];this.dash(u,back,2.5);}
     else if(u.role==='궁수'){for(let j=0;j<3&&t.alive;j++)this.hit(u,t,u.atk*.9,true);}
+    else if(u.id==='rin'){// 홍련참: 대상과 그 주변(80px)의 적 모두에게 불꽃 참격
+      const hits=this.units.filter(e=>e.team!==u.team&&e.alive&&!e.subbedOut&&Math.hypot(e.x-t.x,e.y-t.y)<=80);(hits.length?hits:[t]).forEach(e=>this.hit(u,e,u.atk*2.4,true));}
     else this.hit(u,t,u.atk*2.7,true);
   }
   ultimate(u,t){
@@ -1151,8 +1157,8 @@ class Battle {
       if(['ronaldo','torres'].includes(u.id)&&u.ultimateCd<=0&&dist<250){this.ultimate(u,t);continue;}
       if(['ronaldo','torres'].includes(u.id)&&u.skillCd<=0&&dist<=240&&this.skillReady(u,t)){this.skill(u,t);continue;}
       const tempo=tt.tempo,attackMult=tempo==='aggressive'?1.15:tempo==='defensive'?.9:1;
-      u.moving=dist>u.range+.75;if(u.moving){const speed=(35+u.speed*.45)*(u.slow?.5:1)*(tempo==='aggressive'?1.15:1)*(u.siuuuUntil>this.time?1.35:1)*(u.infiltrationUntil>this.time?1.4:1)*(u.elNinoUntil>this.time?1.45:1)*(u.passiveType==='tailwind'&&this.time-u.spawnedAt<5?1.35:1)*(u.id==='yuzu'&&this.time-u.spawnedAt<(u.awaken>=2?9:6)?1.6:1)*(u.element==='바람'?WIND_HASTE:1)*(u.passiveType==='reaper'?1.2:1),move=Math.min(speed*dt,dist-u.range);this.moveUnit(u,t.x,t.y,move);}
-      else {if(u.skillCd<=0&&this.skillReady(u,t)){this.skill(u,t);continue;}if(u.cooldown<=0&&t.alive){this.basicAttack(u,t,u.atk*attackMult);u.cooldown=Math.max(.5,1.65-u.speed/130)/(u.aspd||1)*(tempo==='defensive'?1.1:1)/(u.element==='바람'?WIND_HASTE:1)/(this.time<20?1+.05*this.tc(u.team,'tempo'):1);}}
+      u.moving=dist>u.range+.75;if(u.moving){const speed=(35+u.speed*.45)*(u.slow?.5:1)*(tempo==='aggressive'?1.15:1)*(u.siuuuUntil>this.time?1.35:1)*(u.infiltrationUntil>this.time?1.4:1)*(u.elNinoUntil>this.time?1.45:1)*(u.passiveType==='tailwind'&&this.time-u.spawnedAt<5?1.35:1)*(u.id==='yuzu'&&this.time-u.spawnedAt<(u.awaken>=2?9:6)?1.6:1)*(u.element==='바람'?WIND_HASTE:1)*(u.passiveType==='reaper'?1.2:1)*(u.forgeUntil>this.time?1.2:1),move=Math.min(speed*dt,dist-u.range);this.moveUnit(u,t.x,t.y,move);}
+      else {if(u.skillCd<=0&&this.skillReady(u,t)){this.skill(u,t);continue;}if(u.cooldown<=0&&t.alive){this.basicAttack(u,t,u.atk*attackMult);u.cooldown=Math.max(.5,1.65-u.speed/130)/(u.aspd||1)*(tempo==='defensive'?1.1:1)/(u.element==='바람'?WIND_HASTE:1)/(this.time<20?1+.05*this.tc(u.team,'tempo'):1)/(u.forgeUntil>this.time?1.2:1);}}
       if(tempo==='defensive'&&u.hp<u.maxHp)u.hp=Math.min(u.maxHp,u.hp+u.maxHp*.004*dt);
       if(tt.formation==='protect'&&u.role==='서포터'){u.hp=Math.min(u.maxHp,u.hp+2*dt);}
     }
@@ -1160,7 +1166,7 @@ class Battle {
     for(let i=0;i<this.units.length;i++)for(let j=i+1;j<this.units.length;j++){const a=this.units[i],b=this.units[j];if(!a.alive||!b.alive)continue;let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d<24){if(d<.01){dx=1;dy=.5;d=1.12;}const push=(24-d)*Math.min(.5,dt*8),wa=a.action?.kind==='attack'||a.action?.kind==='cast'?0:1,wb=b.action?.kind==='attack'||b.action?.kind==='cast'?0:1,total=wa+wb;if(total){a.x-=dx/d*push*wa/total;a.y-=dy/d*push*wa/total;b.x+=dx/d*push*wb/total;b.y+=dy/d*push*wb/total;}}}
     this.units.forEach(u=>{u.x=Math.max(45,Math.min(875,u.x));u.y=Math.max(100,Math.min(325,u.y));});
     [0,1].forEach(team=>{if(this.teamTactics[team].stance==='guard'&&this.guardUntil[team]&&this.time>=this.guardUntil[team])this.releaseGuard(team,'후열 보호 해제 — 전진!');});
-    this.separate(dt);this.furnaceBurn(dt);
+    this.separate(dt);this.ignisPulse(dt);
     this.coachAI();
     const a=this.units.some(u=>u.team===0&&u.alive),b=this.units.some(u=>u.team===1&&u.alive);
     if(!a||!b||this.time>=120){this.done=true;const health=team=>this.units.filter(u=>u.team===team&&!u.subbedOut).reduce((s,u)=>s+u.hp/u.maxHp,0);this.winner=!a?1:!b?0:health(0)>health(1)?0:health(1)>health(0)?1:2;this.log(this.winner===2?'무승부로 종료되었습니다.':`${this.teams[this.winner].name} 승리!`, 'system');}
