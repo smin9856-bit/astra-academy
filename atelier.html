@@ -681,6 +681,11 @@ function cupFixture(state){const c=state.cup;if(!c||!c.alive)return null;const s
 // 다음 경기: 컵 일정이고 아직 살아 있으면 컵, 아니면 리그
 function currentFixture(state){if(slotType(state)==='C'){const f=cupFixture(state);if(f)return {type:'cup',...f};}const f=ourFixture(state);return f&&{type:'league',...f};}
 function fixtureLabel(state){const f=currentFixture(state);return f?.type==='cup'?`아스트라 컵 ${CUP_STAGES[f.stage]}`:`${state.division}부 리그 ${state.match+1}라운드`;}
+// 우리 컵 성적: 이긴 라운드 수와 탈락한 라운드(없으면 -1). 탈락 뒤 다른 학교끼리 치른 라운드는 세지 않습니다.
+function cupJourney(cup){let won=0,lost=-1;(cup?.results||[]).forEach((r,i)=>{const m=r?.find(m=>m.home==='AST'||m.away==='AST');if(!m)return;if(m.winner==='AST')won++;else if(lost<0)lost=i;});return {won,lost};}
+// 시즌 일정 한 칸(i번째 경기)의 종류·이름·상태: done 끝남 / now 다음 경기 / skip 탈락으로 건너뜀 / '' 예정
+function slotInfo(state,i){const t=SCHEDULE[i],n=SCHEDULE.slice(0,i).filter(x=>x===t).length;if(t==='L')return {type:'league',n,short:`R${n+1}`,name:`${state.division}부 리그 ${n+1}라운드`,state:i<state.slot?'done':i===state.slot?'now':''};
+  const j=cupJourney(state.cup),out=!state.cup||(j.lost>=0&&n>j.lost);return {type:'cup',n,short:CUP_STAGES[n],name:`아스트라 컵 ${CUP_STAGES[n]}`,state:out?'skip':i<state.slot?'done':i===state.slot?'now':''};}
 function currentOpponent(state){return teamInfo(currentFixture(state)?.opp)||SCHOOLS[0];}
 // 상대 기본 레벨: 시즌마다 2씩 성장하고(누적), 1부 학교는 한 단계 높으며, 시즌 안에서도 3라운드마다 1씩 오릅니다.
 function opponentLevel(state,o,round=state.match){return Math.max(1,state.season*2-1+Math.floor(round/3)+(o.tier||0)+(state.divisions?.[1]?.includes(o.short)?1:0));}
@@ -1198,7 +1203,7 @@ function settle(state,battle){
     else boardShift(state,cupWin?2:stage===0?-3:0);
   }
   const ourMvp=mvp.team===0?mvp.id:null,starters=battle.units.filter(u=>u.team===0&&!u.subbedOut).map(u=>u.id),speaker=ourMvp||starters[Math.floor(battle.time)%starters.length],good0=type==='cup'?cupWin:win,quote={id:speaker,text:voice(speaker,ourMvp?'mvp':good0?'win':'lose',state.day+state.slot)};
-  state.history.unshift({opponent:battle.opponent.name,opp,type,label,quote,win:type==='cup'?cupWin:win,draw:type==='cup'?false:draw,pen:type==='cup'&&draw,score,round:round+1,time:Math.round(battle.time),day:state.day,season:state.season,gold,gems,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},units:battle.units.map(u=>({id:u.id,team:u.team,damage:u.damage,healing:u.healing,kills:u.kills,taken:u.taken,rating:u.rating,alive:u.alive,sub:u.uid.includes('s')||!!u.subbedOut}))});state.history=state.history.slice(0,60);
+  state.history.unshift({opponent:battle.opponent.name,opp,type,label,full:type==='cup'?`아스트라 컵 ${CUP_STAGES[fx.stage]}`:`${state.division}부 리그 ${round+1}라운드`,stage:type==='cup'?fx.stage:null,quote,win:type==='cup'?cupWin:win,draw:type==='cup'?false:draw,pen:type==='cup'&&draw,score,round:round+1,time:Math.round(battle.time),day:state.day,season:state.season,gold,gems,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},units:battle.units.map(u=>({id:u.id,team:u.team,damage:u.damage,healing:u.healing,kills:u.kills,taken:u.taken,rating:u.rating,alive:u.alive,sub:u.uid.includes('s')||!!u.subbedOut}))});state.history=state.history.slice(0,60);
   const levels={},played=new Set(battle.units.filter(u=>u.team===0).map(u=>u.id)),good=win||cupWin,injuries=[];
   Object.entries(state.roster).forEach(([id,p])=>{
     if(!played.has(id)){p.morale=clamp100(p.morale-2);return;}
