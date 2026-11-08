@@ -1453,7 +1453,7 @@ function autoTrainDay(state){const cfg=state.autoTrain;if(!cfg?.on)return null;c
   out.spent=g0-state.gold;return out;}
 // ── 전체 훈련 · 팀 컬러 ──
 // 전체 훈련으로 팀 훈련 단계를 올리고(하루 1회), 그중 하나를 팀 컬러로 지정하면 경기 내내 팀 전체에 적용됩니다.
-const TEAM_TRAIN_COST=320,TEAM_DRILL_MAX=5;
+const TEAM_TRAIN_COST=200,TEAM_DRILL_MAX=5;
 const TEAM_DRILLS=[
   {id:'teamwork',name:'팀워크',icon:'🤝',desc:lv=>`받는 회복 +${lv*5}% · 케미 효과 +${lv*10}%`,tip:'서포터·케미 조합이 많은 팀'},
   {id:'counter',name:'반격',icon:'⚔',desc:lv=>`근접 공격을 받으면 ${lv*4}% 확률로 공격력 70% 반격`,tip:'탱커·전사가 많은 팀, 돌격형 상대'},
@@ -1475,7 +1475,7 @@ function teamDinner(state){if(dinnerWait(state))return {error:'cooldown',wait:di
   state.gold-=cost;book(state,-cost,'회식');state.dinnerDay=state.day;
   for(const p of dinnerMembers(state).map(id=>state.roster[id])){p.morale=clamp100((p.morale??70)+DINNER.morale);p.fatigue=Math.min(100,(p.fatigue||0)+DINNER.fatigue);p.affinity=Math.min(100,(p.affinity||0)+DINNER.affinity);}
   addNews(state,'회식',`선발·후보 회식 · 사기 +${DINNER.morale} · 피로 +${DINNER.fatigue} (${cost.toLocaleString()} G)`);return {cost};}
-const TRAIN_COST=140;
+const TRAIN_COST=90;
 // ── 팀 주장 ──
 // 선발 중 한 명을 주장으로 지정하면 주장의 역할에 따라 선발 전원에게 지휘 효과가 붙습니다. 린·닉스는 전용 지휘 효과.
 const CAPTAIN_AURA={탱커:{name:'철벽 지휘',desc:'선발 전원 방어력 +6%',mod:{def:.06}},전사:{name:'선봉 지휘',desc:'선발 전원 공격력 +4%',mod:{atk:.04}},암살자:{name:'급습 지휘',desc:'선발 전원 치명타 +3%p · 속도 +3',mod:{crit:.03,speed:3}},궁수:{name:'사격 지휘',desc:'선발 전원 공격 속도 +5%',mod:{aspd:.05}},마법사:{name:'주문 지휘',desc:'선발 전원 스킬 재사용 −6%',mod:{haste:.06}},서포터:{name:'수호 지휘',desc:'선발 전원 최대 체력 +5% · 회복량 +5%',mod:{hp:.05,heal:.05}}};
@@ -1535,7 +1535,10 @@ function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
 const josa=(w,a,b)=>{w=String(w);const c=w.charCodeAt(w.length-1);const has=c>=0xAC00&&c<=0xD7A3?(c-0xAC00)%28!==0:/[0-9a-zA-Z]$/.test(w)&&/[136780lmnr]$/i.test(w);return w+(has?a:b);};
 const paperPick=(rng,arr)=>arr[Math.floor(rng()*arr.length)%arr.length];
 function formStreak(form){if(!form?.length)return {r:null,n:0};const r=form.at(-1);let n=0;for(let i=form.length-1;i>=0&&form[i]===r;i--)n++;return {r,n};}
+// 신문은 3일에 한 번 발행됩니다. 지난 호 이후의 경기는 모두 '새 소식'으로 다룹니다.
+const PAPER_EVERY=3;
 function dailyPaper(state){
+  const since=state.paper?.season===state.season?state.paper.day:state.day-1;
   const rng=random(hash(`paper-${state.season}-${state.day}`)),A=[],tn=k=>teamInfo(k)?.name||k,ts=k=>(teamInfo(k)?.name||k).split(' ')[0];
   const hn=id=>{const c=CHARACTERS.find(c=>c.id===id);return c?.shortName||c?.name||id;};
   const seenTags=new Set((state.paper?.articles||[]).map(a=>a.tag));
@@ -1544,7 +1547,7 @@ function dailyPaper(state){
   const div=state.division;
   // 1) 어제 우리 경기
   const h=state.history?.[0];
-  if(h&&h.season===state.season&&h.day>=state.day-1){const w=h.win,d=h.draw,sc=h.score?.join(':')||'',mvp=h.mvp&&h.mvp.team===0?hn(h.mvp.id):null,comp=h.full||h.label||'경기';
+  if(h&&h.season===state.season&&h.day>=since){const w=h.win,d=h.draw,sc=h.score?.join(':')||'',mvp=h.mvp&&h.mvp.team===0?hn(h.mvp.id):null,comp=h.full||h.label||'경기';
     add(9,'경기',w?paperPick(rng,[`아스트라, ${ts(h.opp)} 꺾고 ${sc} 승리`,`${sc}! 아스트라 ${comp}에서 웃었다`,`아스트라, ${ts(h.opp)} 상대로 완승`]):d?`아스트라, ${josa(ts(h.opp),'과','와')} ${sc} 무승부`:paperPick(rng,[`아스트라, ${ts(h.opp)}에 ${sc} 패배`,`아쉬운 하루… 아스트라 ${comp} 패`]),
       `${comp}에서 아스트라가 ${josa(h.opponent,'을','를')} 상대로 ${sc}${w?'로 승리했다':d?'로 비겼다':'로 패했다'}.${mvp?` 경기 MVP는 평점 ${h.mvp.rating}의 ${mvp}.`:''}${h.outcome?` ${h.outcome}.`:''}`,{hero:mvp?h.mvp.id:null,team:h.opp});}
   // 2) 다음 경기 미리보기
@@ -1589,7 +1592,7 @@ function dailyPaper(state){
   if(pool.length){const id=paperPick(rng,pool),L=HERO_LORE[id],rel=L.relations?.[0];
     add(2,'캠퍼스',paperPick(rng,[`포착! ${hn(id)}의 쉬는 시간`,`${josa(hn(id),'이','가')} 요즘 빠진 것은?`,`동료들이 말하는 ${hn(id)}`]),`${hn(id)}의 요즘 관심사는 “${String(L.likes||'').split(',')[0].trim()}”.${rel?` ${josa(hn(rel[0]),'과','와')}는 ‘${rel[1]}’ 사이라고.`:''}`,{hero:id});}
   // 9) 직전 라운드 이변 · 대승(모든 리그, 경기 다음 날에만)
-  const fresh=h&&h.season===state.season&&h.day>=state.day-1,wl=m=>m.w===0?[m.home,m.away]:[m.away,m.home],sc2=m=>`${Math.max(m.hs,m.as)}:${Math.min(m.hs,m.as)}`;
+  const fresh=h&&h.season===state.season&&h.day>=since,wl=m=>m.w===0?[m.home,m.away]:[m.away,m.home],sc2=m=>`${Math.max(m.hs,m.as)}:${Math.min(m.hs,m.as)}`;
   if(fresh&&h.type!=='cup')for(const d of DIVISIONS){const last=(state.leagues?.[d]?.results||[]).filter(Boolean).at(-1);if(!last?.length)continue;const rows=leagueTable(state,d),rk=k=>rows.findIndex(r=>r.key===k)+1;
     for(const m of last){if(m.w===2||m.home==='AST'||m.away==='AST')continue;const [W,L]=wl(m);
       if(rk(W)-rk(L)>=3)add(4.2,'이변',paperPick(rng,[`이변! ${josa(ts(W),'이','가')} ${josa(ts(L),'을','를')} 잡았다`,`${d}부 충격… ${ts(L)}, ${ts(W)}에 덜미`]),`${d}부 ${rk(W)}위 ${josa(tn(W),'이','가')} ${rk(L)}위 ${josa(tn(L),'을','를')} ${sc2(m)}로 꺾었다. 순위표가 요동친다.`,{team:W});}
@@ -1656,7 +1659,7 @@ function dailyPaper(state){
   A.sort((a,b)=>b.p-a.p);const out=[],cnt={};for(const a of A){if(out.length>=9)break;if(cnt[a.tag])continue;out.push(a);cnt[a.tag]=1;}for(const a of A){if(out.length>=9)break;if(out.includes(a)||cnt[a.tag]>=2)continue;out.push(a);cnt[a.tag]++;}out.sort((a,b)=>b.p-a.p);
   if(!out.length)out.push({tag:'아카데미',title:'오늘도 평화로운 아스트라',body:'큰 소식 없는 하루. 훈련장에는 땀방울만 가득하다.'});
   return {season:state.season,day:state.day,no:(state.paper?.no||0)+1,seen:false,articles:out.map(({p,...a})=>a)};}
-function rest(state){restDay(state);state.lastAuto=autoTrainDay(state);quarterTick(state);state.paper=dailyPaper(state);}
+function rest(state){restDay(state);state.lastAuto=autoTrainDay(state);quarterTick(state);if(!state.paper||state.paper.season!==state.season||state.day-state.paper.day>=PAPER_EVERY)state.paper=dailyPaper(state);}
 function restDay(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
 // 하루를 넘기고, 인연 이야기나 아카데미 이벤트가 생길 수 있습니다.
 function advanceDay(state,rng=Math.random){
