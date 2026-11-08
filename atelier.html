@@ -1538,7 +1538,9 @@ function formStreak(form){if(!form?.length)return {r:null,n:0};const r=form.at(-
 function dailyPaper(state){
   const rng=random(hash(`paper-${state.season}-${state.day}`)),A=[],tn=k=>teamInfo(k)?.name||k,ts=k=>(teamInfo(k)?.name||k).split(' ')[0];
   const hn=id=>{const c=CHARACTERS.find(c=>c.id===id);return c?.shortName||c?.name||id;};
-  const add=(p,tag,title,body,extra={})=>A.push({p:p+rng()*.5,tag,title,body,...extra});
+  const seenTags=new Set((state.paper?.articles||[]).map(a=>a.tag));
+  // 어제 실린 종류는 순위를 낮춰 매일 다른 기사들이 돌아가며 실리게 합니다(경기·프리뷰 제외).
+  const add=(p,tag,title,body,extra={})=>A.push({p:p+rng()*.8-(seenTags.has(tag)&&tag!=='경기'&&tag!=='프리뷰'?2.6:0),tag,title,body,...extra});
   const div=state.division;
   // 1) 어제 우리 경기
   const h=state.history?.[0];
@@ -1586,8 +1588,72 @@ function dailyPaper(state){
   const pool=[...(state.squad||[]),...(state.bench||[])].filter(id=>id&&HERO_LORE[id]);
   if(pool.length){const id=paperPick(rng,pool),L=HERO_LORE[id],rel=L.relations?.[0];
     add(2,'캠퍼스',paperPick(rng,[`포착! ${hn(id)}의 쉬는 시간`,`${josa(hn(id),'이','가')} 요즘 빠진 것은?`,`동료들이 말하는 ${hn(id)}`]),`${hn(id)}의 요즘 관심사는 “${String(L.likes||'').split(',')[0].trim()}”.${rel?` ${josa(hn(rel[0]),'과','와')}는 ‘${rel[1]}’ 사이라고.`:''}`,{hero:id});}
-  // 머리기사 1개 + 서로 다른 종류 위주로 최대 6개
-  A.sort((a,b)=>b.p-a.p);const out=[],cnt={};for(const a of A){if(out.length>=6)break;if(cnt[a.tag])continue;out.push(a);cnt[a.tag]=1;}for(const a of A){if(out.length>=6)break;if(out.includes(a)||cnt[a.tag]>=2)continue;out.push(a);cnt[a.tag]++;}out.sort((a,b)=>b.p-a.p);
+  // 9) 직전 라운드 이변 · 대승(모든 리그, 경기 다음 날에만)
+  const fresh=h&&h.season===state.season&&h.day>=state.day-1,wl=m=>m.w===0?[m.home,m.away]:[m.away,m.home],sc2=m=>`${Math.max(m.hs,m.as)}:${Math.min(m.hs,m.as)}`;
+  if(fresh&&h.type!=='cup')for(const d of DIVISIONS){const last=(state.leagues?.[d]?.results||[]).filter(Boolean).at(-1);if(!last?.length)continue;const rows=leagueTable(state,d),rk=k=>rows.findIndex(r=>r.key===k)+1;
+    for(const m of last){if(m.w===2||m.home==='AST'||m.away==='AST')continue;const [W,L]=wl(m);
+      if(rk(W)-rk(L)>=3)add(4.2,'이변',paperPick(rng,[`이변! ${josa(ts(W),'이','가')} ${josa(ts(L),'을','를')} 잡았다`,`${d}부 충격… ${ts(L)}, ${ts(W)}에 덜미`]),`${d}부 ${rk(W)}위 ${josa(tn(W),'이','가')} ${rk(L)}위 ${josa(tn(L),'을','를')} ${sc2(m)}로 꺾었다. 순위표가 요동친다.`,{team:W});}
+    const big=last.filter(m=>m.w!==2&&m.home!=='AST'&&m.away!=='AST').sort((a,b)=>Math.abs(b.hs-b.as)-Math.abs(a.hs-a.as))[0];
+    if(big&&Math.abs(big.hs-big.as)>=3){const [W,L]=wl(big);add(2.6+Math.abs(big.hs-big.as)*.2,'대승',`${ts(W)}, ${ts(L)}에 ${sc2(big)} 대승`,`${d}부 이번 라운드 최다 점수 차. ${josa(tn(W),'이','가')} 경기 내내 주도권을 놓지 않았다.`,{team:W});}}
+  // 10) 기록실: 우리 리그 최강 화력 · 최소 실점
+  const myRes=(state.leagues?.[div]?.results||[]).filter(Boolean).length;
+  if(myRes>=2&&rng()<.6){const rows=leagueTable(state,div),pg=r=>r.ga/Math.max(1,r.p),atk=[...rows].sort((a,b)=>b.gf-a.gf)[0],dfn=[...rows].sort((a,b)=>pg(a)-pg(b))[0];
+    add(2.4,'기록실',paperPick(rng,[`${div}부 최강 화력은 ${ts(atk.key)}`,`숫자로 보는 ${div}부: 공격 1위 ${ts(atk.key)}`]),`${josa(tn(atk.key),'은','는')} ${atk.p}경기 ${atk.gf}처치로 공격 1위. 가장 단단한 수비는 경기당 ${pg(dfn).toFixed(1)}실점의 ${tn(dfn.key)}.`,{team:atk.key});}
+  // 11) 라이벌전 · 승부 예측 · 날씨(다음 경기 관련)
+  if(fx){const left=Math.max(0,state.matchDay-state.day),met=(state.history||[]).filter(x=>x.opp===fx.opp);
+    if(met.length){const w=met.filter(x=>x.win).length,l=met.filter(x=>!x.win&&!x.draw).length,m0=met[0];
+      add(4.4,'라이벌',paperPick(rng,[`리턴매치! 아스트라 vs ${ts(fx.opp)}`,`${josa(ts(fx.opp),'과','와')} 다시 만난다`]),`최근 맞대결 ${met.length}번에서 ${w}승 ${met.length-w-l}무 ${l}패. 지난 대결은 ${m0.score?.join(':')||'-'} ${m0.win?'승리':m0.draw?'무승부':'패배'}. ${w>l?'설욕을 노리는 상대의 반격이 예상된다.':l>w?'이번에는 아스트라가 갚아 줄 차례다.':'균형을 깰 쪽은 누구일까.'}`,{team:fx.opp});}
+    if(left<=1){const o=teamInfo(fx.opp),ours=power(state),theirs=teamPower(opponentTeam(state,o)),pct=Math.max(12,Math.min(88,Math.round(50+(ours/Math.max(1,theirs)-1)*130)));
+      add(left?3.6:4.8,'승부 예측',pct>=60?`분석팀 “아스트라 우세… 승리 확률 ${pct}%”`:pct<=40?`분석팀 “${ts(fx.opp)} 우세… 아스트라 ${pct}%”`:`분석팀 “예측 불가, 아스트라 ${pct}%”`,`전력 지수 ${Math.round(ours).toLocaleString()} 대 ${Math.round(theirs).toLocaleString()}. ${pct>=60?'방심만 하지 않는다면 승점이 보인다.':pct<=40?'이변을 일으키려면 전술과 교체 타이밍이 중요하다.':'작은 실수 하나가 승부를 가를 전망이다.'}`,{team:fx.opp});
+      if(rng()<.7){const W=paperPick(rng,[['맑음','☀️','시야가 탁 트여 원거리 딜러에게 유리하다는 전망.'],['흐림','☁️','무난한 날씨. 전술 싸움이 승부를 가를 듯.'],['약한 비','🌧️','젖은 바닥에 발이 미끄러질 수 있다. 전열 싸움이 거칠어질 듯.'],['강풍','🌬️','바람이 거세 마법 투사체의 궤적이 흔들릴 수 있다.'],['옅은 안개','🌫️','시야가 짧아 근접전이 늘어날 것으로 보인다.'],['쾌청','🌤️','관중석이 가득 찰 것으로 예상된다. 응원 열기도 최고조.']]);
+        add(2,'날씨',`${left?'내일':'오늘'} 경기장 날씨: ${W[1]} ${W[0]}`,W[2]);}}}
+  // 12) 인터뷰: 경기 다음 날엔 MVP·패전 소감, 평소엔 선수 한마디
+  {let id=null,kind='talk';if(fresh&&h.mvp?.team===0){id=h.mvp.id;kind=h.win?'mvp':'lose';}else if(fresh&&!h.win)id=paperPick(rng,state.squad||[]),kind='lose';else if(pool.length&&rng()<.55)id=paperPick(rng,pool);
+    const q=id?voice(id,kind,Math.floor(rng()*97)):'';if(q)add(fresh?5.6:2.5,'인터뷰',`${hn(id)} “${q.length>24?q.slice(0,23)+'…':q}”`,`“${q}” ${fresh?(h.win?'경기 직후 믹스트존에서':'경기 후 굳은 표정으로'):'훈련장에서 만난'} ${josa(hn(id),'이','가')} 남긴 말이다.`,{hero:id});}
+  // 13) 전술 칼럼
+  if(rng()<.45){const T=state.tactics||{},fm=FORMATIONS.find(f=>f.id===T.formation),me=leagueTable(state,div).find(r=>r.key==='AST'),fw=(me?.form||[]).slice(-3),good=fw.filter(x=>x==='W').length>=2;
+    add(2.2,'전술',paperPick(rng,[`코치의 선택은 ${fm?.name||'균형 진형'}`,`전술 돋보기: ${fm?.name||'균형 진형'}`]),`${fm?.desc||''} 템포는 ${({aggressive:'공격적',balanced:'균형',defensive:'안정적'})[T.tempo]||'균형'}, 노리는 대상은 ${({nearest:'가까운 적',weakest:'낮은 체력',backline:'후열'})[T.focus]||'가까운 적'}. ${fw.length?(good?'최근 결과를 보면 전술이 맞아떨어지고 있다.':'최근 흐름을 보면 변화를 고민할 때다.'):''}${T.captain?` 주장 완장은 ${hn(T.captain)}.`:''}`,{hero:T.captain||null});}
+  // 14) 훈련장 · 컨디션 리포트
+  const LA=state.lastAuto;
+  if(LA?.trained?.length)add(2.8,'훈련장',`훈련장 리포트: ${LA.trained.length}명 구슬땀`,`${LA.trained.length>3?LA.trained.slice(0,3).map(t=>hn(t.id)).join('·')+' 등이':josa(LA.trained.map(t=>hn(t.id)).join('·'),'이','가')} 자동 훈련을 소화했다. 지출 ${LA.spent.toLocaleString()} G.${LA.tired?.length?` ${LA.tired.length}명은 피로가 쌓여 쉬었다.`:''}${LA.team?' 전체 훈련도 함께 진행됐다.':''}`,{hero:LA.trained[0].id});
+  const sq=(state.squad||[]).filter(id=>state.roster[id]),sAvg=k=>sq.reduce((v,id)=>v+(state.roster[id][k]||0),0)/Math.max(1,sq.length),fat=sAvg('fatigue'),mor=sAvg('morale');
+  if(sq.length){const worn=[...sq].sort((a,b)=>state.roster[b].fatigue-state.roster[a].fatigue)[0];
+    if(fat>=40)add(4.6,'컨디션',`선발진 피로도 ${Math.round(fat)}… 체력 관리 비상`,`가장 지친 선수는 ${hn(worn)}(피로 ${state.roster[worn].fatigue}). 무리하면 부상 위험이 커진다.`,{hero:worn});
+    else if(mor>=85)add(2.6,'컨디션','선수단 분위기 최고조',`선발 평균 사기 ${Math.round(mor)}. 라커룸에 웃음이 끊이지 않는다.`);
+    else if(mor<50)add(4,'컨디션','라커룸에 감도는 무거운 공기',`선발 평균 사기 ${Math.round(mor)}. 회식이나 면담이 필요하다는 지적이다.`);}
+  // 15) 의무실 주의보 · 기록 달성
+  const omen=ids.find(id=>state.roster[id].injuryOmen&&!state.roster[id].injury);
+  if(omen)add(3.8,'의무실',`의무실, ${hn(omen)} 컨디션 예의주시`,'훈련 중 불편함을 호소했다는 후문. 무리한 출전은 부상으로 이어질 수 있다.',{hero:omen});
+  if(fresh){const mile=(h.units||[]).filter(u=>u.team===0).map(u=>u.id).find(id=>[10,25,50,75,100].includes(state.roster[id]?.apps));
+    if(mile)add(3.4,'기록 달성',`${hn(mile)}, 통산 ${state.roster[mile].apps}경기 출장`,`${state.roster[mile].kills}처치 · MVP ${state.roster[mile].mvp}회. 아스트라의 역사를 한 경기씩 써 내려가고 있다.`,{hero:mile});}
+  // 16) 재정 · 시설
+  const qt=state.finance?.cur?quarterTotals(state):null;
+  if(qt&&(qt.income||qt.expense)&&rng()<.45)add(2.3,'재정',qt.net>=0?`이번 분기 흑자 ${qt.net.toLocaleString()} G`:`이번 분기 적자 ${(-qt.net).toLocaleString()} G`,`수입 ${qt.income.toLocaleString()} G · 지출 ${qt.expense.toLocaleString()} G. 금고 잔액은 ${state.gold.toLocaleString()} G.${state.finance.loan>0?` 갚아야 할 대출은 ${state.finance.loan.toLocaleString()} G.`:''}`);
+  const fac=(state.news||[]).find(n=>n.tag==='시설'&&n.season===state.season&&n.day>=state.day-1);
+  if(fac)add(3.2,'시설','아카데미 시설 확장 완료',`${fac.text} 학생들의 기대가 크다.`);
+  // 17) 인연 · 팬 레터 · 오늘의 운세(가벼운 읽을거리)
+  const fav=ids.filter(id=>(state.roster[id].affinity||0)>=40).sort((a,b)=>state.roster[b].affinity-state.roster[a].affinity)[0];
+  if(fav&&rng()<.5)add(2.4,'인연',paperPick(rng,[`${hn(fav)}, “코치님은 특별한 분”`,`코치와 ${hn(fav)}, 믿음의 비결은?`]),`호감도 ${state.roster[fav].affinity}. 훈련이 끝나도 코치실 앞을 서성이는 모습이 자주 목격된다.`,{hero:fav});
+  if(pool.length&&rng()<.55){const id=paperPick(rng,pool),c=CHARACTERS.find(c=>c.id===id),lk=String(HERO_LORE[id]?.likes||'').split(',')[0].trim();
+    add(1.8,'팬 레터',`독자 투고: “${hn(id)} 선수에게”`,paperPick(rng,[`“${josa(c.skill,'을','를')} 직접 본 날을 잊지 못해요. 다음 경기도 응원할게요!” — 루미에르의 한 팬`,`“${c.role} 포지션의 교과서! 우리 반 전원이 ${hn(id)} 팬이에요.” — 아카데미 1학년`,`“${lk?josa(lk,'을','를')+' 좋아한다면서요? ':''}경기장에 꼭 선물 들고 갈게요!” — 익명의 팬`,`“지는 날에도 끝까지 뛰는 모습에 힘을 얻어요.” — 시험 기간의 한 수험생`]),{hero:id});}
+  if(rng()<.5){const id=paperPick(rng,pool.length?pool:ids),st=1+Math.floor(rng()*5);
+    add(1.5,'운세',`오늘의 행운 선수: ${hn(id)}`,`행운 지수 ${'★'.repeat(st)}${'☆'.repeat(5-st)}. ${paperPick(rng,['행운의 아이템은 따뜻한 홍차.','동쪽 훈련장에서 좋은 일이 생길지도.','오늘은 평소보다 한 걸음 앞으로.','작은 칭찬 한마디가 큰 힘이 되는 날.','행운의 숫자는 7. 일곱 번째 공격을 노려라.'])}`,{hero:id});}
+  // 18) 스카우트 노트 · 다른 리그 소식
+  const others=(state.divisions?.[div]||[]).filter(k=>k!=='AST'&&k!==fx?.opp);
+  if(others.length&&rng()<.55){const k=paperPick(rng,others),o=teamInfo(k),key=o?.lineup?.[0],kc=CHARACTERS.find(c=>c.id===key);
+    if(kc)add(2.4,'스카우트',`스카우트 노트: ${ts(k)}의 핵심 ${hn(key)}`,`${josa(o.name,'은','는')} “${o.description}”${josa(o.description,'을','를').slice(o.description.length)} 내건 팀. 공격의 중심은 ${hn(key)}의 「${kc.skill}」. 맞대결 전에 대비가 필요하다.`,{hero:key});}
+  for(const d of DIVISIONS){if(d===div||(state.leagues?.[d]?.results||[]).filter(Boolean).length<3||rng()>=.35)continue;const top=leagueTable(state,d)[0];
+    add(2,'리그 소식',`${d}부 선두는 ${ts(top.key)}`,`승점 ${top.pts}, ${top.w}승 ${top.d}무 ${top.l}패. ${d<div?'언젠가 아스트라가 넘어야 할 산이다.':'아래 리그에서 치고 올라올 팀으로 주목받는다.'}`,{team:top.key});}
+  // 19) 시즌 일정 · 명예의 전당 · 1년 전 오늘
+  const leftR=ROUNDS-(state.match||0);
+  if(myRes&&leftR>0&&leftR<=3)add(4.2,'일정',`정규 리그 종료까지 ${leftR}경기`,`순위 싸움이 막바지에 접어들었다. 한 경기 한 경기가 결승전이다.`);
+  else if(state.match===HALF&&fresh)add(3.6,'일정','반환점 돈 리그, 후반기 돌입',`전반기 ${HALF}경기가 끝났다. 후반기에는 상대들도 한층 강해진다.`);
+  const tr=(state.trophies||[]).filter(t=>t.type==='cup'||t.rank<=3);
+  if(tr.length&&rng()<.35){const t=paperPick(rng,tr);add(1.9,'명예의 전당',t.type==='cup'?`그날의 영광: ${t.season}학기 ${t.name} 우승`:`그날의 영광: ${t.season}학기 ${t.division}부 ${t.rank}위`,'아카데미 복도 진열장에서 오늘도 빛나는 기록. 새로운 트로피가 그 옆자리를 기다린다.');}
+  const past=(state.history||[]).find(x=>x.season===state.season-1&&Math.abs(x.day-state.day)<=1);
+  if(past)add(2.2,'1년 전 오늘',`1년 전 오늘: ${past.full}`,`지난 학기 이맘때 아스트라는 ${josa(past.opponent,'을','를')} 상대로 ${past.score?.join(':')} ${past.win?'승리':past.draw?'무승부':'패배'}를 기록했다.`,{team:past.opp});
+  // 머리기사 1개 + 서로 다른 종류 위주로 최대 9개
+  A.sort((a,b)=>b.p-a.p);const out=[],cnt={};for(const a of A){if(out.length>=9)break;if(cnt[a.tag])continue;out.push(a);cnt[a.tag]=1;}for(const a of A){if(out.length>=9)break;if(out.includes(a)||cnt[a.tag]>=2)continue;out.push(a);cnt[a.tag]++;}out.sort((a,b)=>b.p-a.p);
   if(!out.length)out.push({tag:'아카데미',title:'오늘도 평화로운 아스트라',body:'큰 소식 없는 하루. 훈련장에는 땀방울만 가득하다.'});
   return {season:state.season,day:state.day,no:(state.paper?.no||0)+1,seen:false,articles:out.map(({p,...a})=>a)};}
 function rest(state){restDay(state);state.lastAuto=autoTrainDay(state);quarterTick(state);state.paper=dailyPaper(state);}
@@ -1878,7 +1944,7 @@ function settle(state,battle){
   addNews(state,type==='cup'?'컵':'경기',`${label} vs ${battle.opponent.name} ${score[0]} : ${score[1]} ${type==='cup'?(cupWin?(draw?'결정전 승리 · 다음 라운드 진출':'승리 · 다음 라운드 진출'):(draw?'결정전 패배 · 탈락':'패배 · 탈락')):win?'승리':draw?'무승부':'패배'}`);
   Object.entries(levels).forEach(([id,before])=>{const p=state.roster[id];if(p.level>before)addNews(state,'성장',`${CHARACTERS.find(c=>c.id===id).name} Lv.${p.level} 달성${pendingTraits(p)?' · 새 특성 선택 가능':''}`);});
   if(type==='cup')archiveCupResult(state,fx.letter);advanceSlot(state);let summary=null;if(state.slot>=sched(state).length)summary=endSeason(state);
-  rest(state);state.matchDay=state.day+2;refreshShop(state);
+  state.matchDay=state.day+3;rest(state);refreshShop(state);
   return {gold,gems,score,type,cupWin,label,quote,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},summary,injuries};
 }
 
