@@ -3407,11 +3407,75 @@ function drawHeroSkillFx(ctx,u,event,time){
  ctx.save();ctx.globalAlpha=fxClamp((dur+.3-age)*3);
  if(m)fxCharge(g,ctx,e,m);
  draw(g,e);
- if(m)points.forEach((pt,k)=>{fxImpact(g,ctx,e,m,pt,k);fxAfter(g,e,m,pt,k);});
+ if(m)fxKindMark(g,ctx,e,m,points);
+ if(m)points.forEach((pt,k)=>{fxImpact(g,ctx,e,m,pt,k);fxElementMark(g,ctx,e.el,pt,e.age-e.dur*m.hit-k*.06);fxAfter(g,e,m,pt,k);});
  ctx.restore();return true;
 }
 // 전투 화면 섬광: 임팩트 직후 아주 짧게 화면 전체에 원소 색을 비춥니다.
 function skillFlash(u,time){const m=SKILL_META[u.id],ev=u.skillVisual;if(!m||!ev||!u.alive)return null;const a=time-ev.start-Math.max(.6,ev.duration||1)*m.hit;return a>=0&&a<.12?{color:m.pal[1],alpha:.2*(1-a/.12)}:null;}
+
+// ═══ 특성별 도트 연출 확장 ═══
+// ① 속성 각인: 임팩트 직후 속성마다 다른 도트 무늬가 남습니다(불꽃·얼음 가시·덩굴·균열·낙뢰·물보라·빛기둥·공허·회오리).
+// ② 유형 표식: 공격은 조준선, 치유는 떠오르는 십자, 방어는 육각 방벽.
+// ③ 스킬 배너: 머리 위에 속성 색 리본 + 유형 아이콘 + 스킬 이름.
+// ④ 상태 아이콘: 보호막·둔화·강화·도발을 머리 위 작은 도트 아이콘으로.
+const FX_ICON={
+ hit:['......##','.....##.','#...##..','.#.##...','..##....','.##.#...','##...#..','#.......'],
+ heal:['..####..','..#++#..','###++###','#++++++#','#++++++#','###++###','..#++#..','..####..'],
+ shield:['########','#++++++#','#++++++#','#++++++#','.#++++#.','.#++++#.','..#++#..','...##...'],
+ slow:['...#....','.#.#.#..','..###...','#######.','..###...','.#.#.#..','...#....','........'],
+ up:['...##...','..####..','.######.','########','...##...','...##...','...##...','...##...'],
+ flame:['...#....','..##....','..##.#..','.####...','.#++##..','##+++##.','#++++#..','.####...'],
+ taunt:['..##....','..##....','..##....','..##....','..##....','........','..##....','..##....']
+};
+function fxIcon(ctx,x,y,rows,c1,c2,cell=2){for(let r=0;r<rows.length;r++)for(let k=0;k<rows[r].length;k++){const ch=rows[r][k];if(ch==='.')continue;ctx.fillStyle=ch==='+'?c2:c1;ctx.fillRect(Math.round(x/2)*2+k*cell,Math.round(y/2)*2+r*cell,cell,cell);}}
+const ELEMENT_FX_COL={불:['#fff6c9','#ffcf6b','#ff5a2d','#a3191f'],얼음:['#ffffff','#edfcff','#8bc5ff','#2f5aa8'],풀:['#f4ffe0','#b8ec8a','#5fb54a','#2f6a2a'],땅:['#fff1c1','#e0b07a','#a0703f','#5a3a1a'],전기:['#ffffff','#fff8ba','#f2d24a','#8a6a10'],물:['#ffffff','#d0fcff','#52b9e3','#1f4f8a'],빛:['#ffffff','#fff8d8','#ffe08a','#c8963a'],어둠:['#fbe6ff','#d9a8ff','#7b4fc4','#2b1d3d'],바람:['#ffffff','#e5ffe0','#85e0bd','#2a6a52']};
+function fxElementMark(g,ctx,el,pt,a){const life=.8;if(a<0||a>life)return;const q=fxClamp(a/life),fade=1-q,[c0,c1,c2,c3]=ELEMENT_FX_COL[el]||ELEMENT_FX_COL.빛,x=pt.x,y=pt.y,fy=pt.fy,flick=Math.floor(a*24);
+ const skip=i=>q>.6&&(i+flick)%2===0;
+ if(el==='불'){for(let i=0;i<10;i++){if(skip(i))continue;const ang=i/10*Math.PI*2,bx=x+Math.cos(ang)*(14+q*18),by=fy+Math.sin(ang)*(5+q*6),h=Math.round((8+fxNoise(i+flick)*14)*fade/2)*2;for(let k=0;k<h;k+=2){const f=k/Math.max(2,h);g.px(bx+(fxNoise(i*7+k+flick)-.5)*3,by-k,2,f<.25?c0:f<.5?c1:f<.8?c2:c3);}}
+  for(let i=0;i<8;i++){const t=fxFract(a*1.6+fxNoise(i)),ex=x+(fxNoise(i+3)-.5)*44,ey=fy-t*60;if(t<.9)g.px(ex,ey,2,i%2?c1:c2);}g.ring(x,fy,20+q*16,6+q*5,c3,2);}
+ else if(el==='얼음'){const h=Math.round(Math.min(1,a/.12)*22);for(let i=0;i<6;i++){if(skip(i))continue;const ang=-Math.PI/2+(i-2.5)*.42;fxShard(g,x+(i-2.5)*9,fy,Math.max(4,Math.round(h*(i%2?.7:1)/2)*2),c3,c1,ang);}
+  if(a<.45){g.star(x,y-6,Math.round(10*fade)+2,c1,c0);g.star(x,y-6,Math.round(5*fade)+2,c2,c0);}g.ring(x,fy,18+q*10,5+q*3,c2,2);}
+ else if(el==='풀'){for(let i=0;i<5;i++){if(skip(i))continue;const bx=x+(i-2)*12,len=Math.min(1,a/.25)*28*(i%2?.8:1);let px0=bx,py0=fy;for(let k=2;k<=len;k+=2){const nx=bx+Math.sin(k*.22+i)*5,ny=fy-k;g.line(px0,py0,nx,ny,c3,2);px0=nx;py0=ny;if(k%8===0){g.px(nx+3,ny,2,c1);g.px(nx+5,ny-2,2,c2);g.px(nx-4,ny-1,2,c2);}}g.px(px0,py0-2,2,c0);}
+  for(let i=0;i<7;i++){const t=fxFract(a*1.2+fxNoise(i+9)),ang=t*Math.PI*3+i,r=10+t*30;g.px(x+Math.cos(ang)*r,y+Math.sin(ang)*r*.6-t*14,2,i%2?c1:c2);}}
+ else if(el==='땅'){for(let i=0;i<6;i++){if(skip(i))continue;const ang=i/6*Math.PI*2+.3;let cx=x,cy=fy;const n=Math.min(5,Math.ceil(a/.06));for(let k=0;k<n;k++){const nx=cx+Math.cos(ang)*8+(fxNoise(i*9+k)-.5)*6,ny=cy+Math.sin(ang)*3+(fxNoise(i*5+k)-.5)*3;g.line(cx,cy,nx,ny,k<2?c3:c2,2);cx=nx;cy=ny;}}
+  for(let i=0;i<7;i++){const v=40+fxNoise(i)*40,ang=-Math.PI/2+(fxNoise(i+4)-.5)*2.2,t=a,rx=x+Math.cos(ang)*v*t,ry=fy+Math.sin(ang)*v*t+150*t*t;if(ry<=fy+2){g.px(rx,ry,4,i%2?c2:c1);g.px(rx+2,ry+2,2,c3);}}}
+ else if(el==='전기'){if(a<.5)for(let i=0;i<3;i++){if((i+flick)%3===0)continue;const sx=x+(i-1)*18+(fxNoise(i+flick)-.5)*10;g.bolt(sx,y-90,x+(i-1)*4,y,c2,c0,i*13+flick,7,10);}
+  for(let i=0;i<12;i++){if(skip(i))continue;const ang=fxNoise(i+flick)*Math.PI*2,r=10+fxNoise(i+2)*26*q+6;g.px(x+Math.cos(ang)*r,y+Math.sin(ang)*r*.7,2,i%3?c1:c0);}if(a<.3)g.ring(x,fy,14+a*60,5+a*18,c1,2);}
+ else if(el==='물'){for(let i=0;i<14;i++){if(skip(i))continue;const ang=-Math.PI/2+(i/13-.5)*2.6,v=50+fxNoise(i)*50,t=a,dx=x+Math.cos(ang)*v*t,dy=y+Math.sin(ang)*v*t+180*t*t;if(dy<fy+4){g.px(dx,dy,i%3?2:4,i%2?c1:c2);g.px(dx,dy-2,2,c0);}}
+  for(let r=0;r<3;r++){const rq=fxClamp(q*1.4-r*.25);if(rq>0&&rq<1)g.ring(x,fy,10+rq*40,3+rq*12,r%2?c2:c1,2);}}
+ else if(el==='빛'){const w=Math.max(2,Math.round(14*fade/2)*2);if(a<.55){g.line(x,y-120,x,fy,c2,w+4);g.line(x,y-120,x,fy,c1,w);if(w>4)g.line(x,y-120,x,fy,c0,w-4);}
+  g.star(x,y-8,Math.round(18*fade)+4,c1,c0);g.ring(x,fy,16+q*24,5+q*7,c2,2);for(let i=0;i<8;i++){const t=fxFract(a*1.5+fxNoise(i)),px1=x+(fxNoise(i+6)-.5)*50;g.px(px1,fy-t*70,2,i%2?c0:c1);}}
+ else if(el==='어둠'){const rr=Math.round((a<.3?a/.3:fade)*30/2)*2;if(rr>2){g.disc(x,fy,rr,Math.max(2,Math.round(rr*.33/2)*2),c3);g.ring(x,fy,rr+2,Math.round(rr*.33)+2,c2,2);}
+  for(let i=0;i<6;i++){if(skip(i))continue;const bx=x+(i-2.5)*9;let px0=bx,py0=fy;const len=Math.min(1,a/.2)*30*fade+6;for(let k=2;k<=len;k+=2){const nx=bx+Math.sin(k*.3+a*10+i)*6,ny=fy-k;g.px(nx,ny,2,k>len-4?c1:c2);px0=nx;py0=ny;}}
+  if(a<.4)for(let i=0;i<4;i++){const ang=i/4*Math.PI*2+a*6;g.diamond(x+Math.cos(ang)*22,y+Math.sin(ang)*14,4,c1);}}
+ else if(el==='바람'){fxSpiral(g,x,y,4,26+q*14,1.6,a*9,c2,fade+.2);fxSpiral(g,x,y,2,18+q*10,1.2,a*9+Math.PI,c1,fade+.2);
+  for(let i=0;i<6;i++){if(skip(i))continue;const sy=y-20+i*8,off=((a*260+i*37)%120)-60;g.line(x+off-12,sy,x+off+8,sy,i%2?c0:c1,2);}}
+}
+// 유형 표식: 공격은 시전 중 대상에게 조여드는 조준선, 치유는 위로 떠오르는 십자, 방어는 시전자를 감싸는 육각 방벽.
+function fxKindMark(g,ctx,e,m,points){const hitAt=e.dur*m.hit,[c0,c1,c2,c3]=m.pal;
+ if(m.kind==='hit'&&e.age<hitAt+.08){const q=fxClamp(e.age/Math.max(.05,hitAt));for(const pt of points){const r=Math.round((26-q*12)/2)*2,x=pt.x,y=pt.y,len=8;ctx.save();ctx.globalAlpha*=.4+.6*q;
+   for(const [sx,sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){g.line(x+sx*r,y+sy*r,x+sx*r-sx*len,y+sy*r,c1,2);g.line(x+sx*r,y+sy*r,x+sx*r,y+sy*r-sy*len,c1,2);}
+   if(q>.6){g.px(x-1,y-1,2,c0);g.line(x-6,y,x-3,y,c2,2);g.line(x+3,y,x+6,y,c2,2);}ctx.restore();}}
+ if(m.kind==='heal'&&e.age>=hitAt){const a=e.age-hitAt;for(const pt of points)for(let i=0;i<5;i++){const t=fxFract(a*.9+i*.2),cx=pt.x+(i-2)*12+Math.sin(a*4+i)*3,cy=pt.fy-10-t*56;if(t>.85&&(i+Math.floor(a*20))%2)continue;fxIcon(ctx,cx-6,cy-6,['.##.','####','####','.##.'].map(r=>r),c1,c0,2);g.px(cx,cy-6,2,c0);g.px(cx,cy+6,2,c0);g.px(cx-6,cy,2,c0);g.px(cx+6,cy,2,c0);}}
+ if(m.kind==='shield'&&e.age>=hitAt){const a=e.age-hitAt,q=fxClamp(a/.25),fade=1-fxClamp((a-e.dur*(1-m.hit))/.3);if(fade<=0)return;ctx.save();ctx.globalAlpha*=fade;const pt=points[0]||{x:e.cx,y:e.cy};
+  for(let i=0;i<3;i++)fxHex(g,pt.x,pt.y,Math.round((18+i*10)*q),i%2?c2:c1);for(let i=0;i<6;i++){const ang=i/6*Math.PI*2+a*2;g.px(pt.x+Math.cos(ang)*38*q,pt.y+Math.sin(ang)*38*q,4,c0);}ctx.restore();}}
+// 스킬 배너: 시전 직후 1초 동안 머리 위에 리본으로 스킬 이름을 띄웁니다. 호날두·토레스·전용 연출이 없는 영웅도 속성 색으로 똑같이 보여 줍니다.
+function skillBanner(ctx,u,time,top){const ev=u.skillVisual;if(!ev||!u.alive)return;const age=time-ev.start;if(age<0||age>1.15)return;const name=u.castName||u.skill;if(!name)return;
+ const m=SKILL_META[u.id],pal=m?.pal||ELEMENT_FX_COL[u.element]||ELEMENT_FX_COL.빛,kind=m?.kind||'hit',[c0,c1,c2,c3]=pal;ctx.save();ctx.font='bold 10px sans-serif';const tw=Math.ceil(ctx.measureText(name).width),full=tw+30,grow=fxEase(fxClamp(age/.14)),w=Math.max(8,Math.round(full*grow/2)*2),h=16,x=Math.round((u.x-w/2)/2)*2,y=Math.round((top-h-6-(age<.14?(1-grow)*6:0))/2)*2;
+ ctx.globalAlpha*=fxClamp((1.15-age)*5);ctx.fillStyle='#0009';ctx.fillRect(x+2,y+2,w,h);ctx.fillStyle=c3;ctx.fillRect(x,y,w,h);ctx.fillStyle=c2;ctx.fillRect(x,y+2,w,2);ctx.fillStyle=c1;ctx.fillRect(x,y,w,2);ctx.fillRect(x,y+h-2,w,2);
+ ctx.fillStyle=c3;ctx.fillRect(x-4,y+4,4,8);ctx.fillRect(x+w,y+4,4,8);ctx.fillStyle=c1;ctx.fillRect(x-6,y+6,2,4);ctx.fillRect(x+w+4,y+6,2,4);
+ if(grow>=1){fxIcon(ctx,x+6,y+4,FX_ICON[kind],c0,c1,1);ctx.textAlign='left';ctx.fillStyle='#000a';ctx.fillText(name,x+21,y+12);ctx.fillStyle=c0;ctx.fillText(name,x+20,y+11);
+  if(age<.3){const sx=x+((age/.3)*(w+20))-10;ctx.fillStyle='#ffffff88';ctx.fillRect(Math.round(sx/2)*2,y,4,h);}}ctx.restore();}
+// 상태 아이콘: 머리 위 체력바 위에 작은 도트 아이콘을 나란히 표시합니다.
+function drawStatusIcons(ctx,u,time,top){if(!u.alive)return;const list=[];
+ if(u.shield>0)list.push(['shield','#9cc4ff','#e6f1ff']);
+ if(u.slow>0)list.push(['slow','#bfe8ff','#ffffff']);
+ if(u.mikaBuff&&u.mikaBuff.until>time)list.push(['up',{atk:'#ff8a6a',speed:'#8de5b3',haste:'#9cbcff'}[u.mikaBuff.kind]||'#ffd36b','#ffffff']);
+ if(u.forgeUntil>time)list.push(['flame','#ff8a3d','#ffe08a']);
+ if(u.tauntUntil>time)list.push(['taunt','#ff6a5a','#ff6a5a']);
+ if(!list.length)return;const cell=2,size=8*cell+4,w=list.length*size-2,x0=Math.round(u.x-w/2),y=Math.round(top-size-2);ctx.save();
+ list.forEach(([k,c1,c2],i)=>{const x=x0+i*size;ctx.fillStyle='#14101ccc';ctx.fillRect(x-1,y-1,8*cell+2,8*cell+2);fxIcon(ctx,x,y,FX_ICON[k],c1,c2,cell);});ctx.restore();}
 
 
 function pixelLine(ctx,x1,y1,x2,y2,color,size=2){ctx.fillStyle=color;const n=Math.max(1,Math.ceil(Math.hypot(x2-x1,y2-y1)/2));for(let i=0;i<=n;i++)ctx.fillRect(Math.round((x1+(x2-x1)*i/n)/2)*2,Math.round((y1+(y2-y1)*i/n)/2)*2,size,size);}
@@ -3548,8 +3612,8 @@ function drawBattle(canvas,battle,clock=0){
   if(u.alive&&u.tauntUntil>battle.time){const k=Math.floor(battle.time*6)%2;pixelRing(ctx,u.x,u.y+4,40+k*2,13,'#ff6a5a',2);ctx.fillStyle='#ff6a5a';ctx.fillRect(Math.round(u.x-2),Math.round(u.y-UNIT_SIZE*.95),4,9);ctx.fillRect(Math.round(u.x-2),Math.round(u.y-UNIT_SIZE*.95+11),4,3);}
   if(u.alive&&u.mikaBuff&&u.mikaBuff.until>battle.time){const col={atk:'#ff8a6a',speed:'#8de5b3',haste:'#9cbcff'}[u.mikaBuff.kind];for(let k=0;k<3;k++){const hgt=(battle.time*22+k*8)%22;ctx.fillStyle=col;ctx.fillRect(Math.round(u.x-10+k*10),Math.round(u.y-6-hgt),2,2);}}
   if(u.alive&&u.forgeUntil>battle.time){pixelRing(ctx,u.x,u.y+4,34+Math.sin(battle.time*8)*2,11,'#ff8a3d',2);for(let k=0;k<6;k++){const a=k/6*Math.PI*2+battle.time*2,h=(battle.time*40+k*9)%18;ctx.fillStyle=k%2?'#ffcf6b':'#ff5a2d';ctx.fillRect(Math.round(u.x+Math.cos(a)*30),Math.round(u.y+4+Math.sin(a)*10-h),3,3);}}
-  if(u.alive)unitPlate(ctx,u,battle,u.y-UNIT_SIZE*.76-leap);
-  if(u.cast>0){ctx.fillStyle='#30223bea';ctx.fillRect(u.x-31,u.y+17,62,15);ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillStyle='#ffdf94';ctx.fillText(u.castName||u.skill,u.x,u.y+28);}
+  if(u.alive){const plateTop=u.y-UNIT_SIZE*.76-leap;unitPlate(ctx,u,battle,plateTop);drawStatusIcons(ctx,u,battle.time,plateTop);skillBanner(ctx,u,battle.time,plateTop-20);}
+  if(u.cast>0&&!u.skillVisual){ctx.fillStyle='#30223bea';ctx.fillRect(u.x-31,u.y+17,62,15);ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillStyle='#ffdf94';ctx.fillText(u.castName||u.skill,u.x,u.y+28);}
   ctx.globalAlpha=1;
  }
  // 승리 세리머니: 이긴 팀 머리 위로 색종이와 별이 쏟아집니다(무승부는 없음).
