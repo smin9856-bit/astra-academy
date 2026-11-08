@@ -2614,6 +2614,7 @@ class Battle {
     {const cl=this.tc(t.team,'counter');if(cl&&!skill&&!this.countering&&u.range<70&&t.hp>0&&damage>0&&this.rng()<.04*cl){this.countering=true;this.effects.push({kind:'heal',x:t.x,y:t.y-14,color:'#ffd27a',text:'반격!',life:.7,total:.7});this.hit(t,u,t.atk*.7);this.countering=false;}}
     this.effects.push({kind:skill?'burst':'hit',x:t.x,y:t.y,fromX:u.x,fromY:u.y,color:u.color,crit,edge,react:edge>0?ELEMENTS[u.element].react:null,text:damage?(crit?'✦ ':'')+damage:'방어',life:.65,total:.65});
     if(crit||skill)this.shake=Math.max(this.shake,crit?.22:.14);this.sound(crit?'crit':'hit');
+    if(skill||crit){t.hitFlashUntil=this.time+(skill?.14:.08);this.hitStop=Math.max(this.hitStop||0,skill&&crit?.13:skill?.09:.05);}
     if(t.hp<=0){t.alive=false;t.deathAt=this.time;t.action=null;t.cast=0;delete t.dash;u.kills++;this.shake=Math.max(this.shake,.45);this.sound('kill');this.feed.unshift({time:this.time,killer:u.shortName||u.name,victim:t.shortName||t.name,team:u.team});if(this.feed.length>5)this.feed.pop();if(u.id==='ronaldo'){u.goatStacks.push(this.time+8);this.log('호날두 · GOAT 멘탈 '+u.goatStacks.length+'중첩!',u.team===0?'good':'bad');}this.log(`<b class="kf t${u.team}">${u.name}</b> → <b class="kf t${t.team}">${t.name}</b> 전투 불능`,u.team===0?'good':'bad');}
     // 린 연격: 기본 공격이 맞으면 같은 대상을 한 번 더 벱니다(원래 공격의 80%, 각성 2단계 120%)
     if(u.id==='rin'&&!skill&&!u.inFollowUp&&damage>0&&t.alive){u.inFollowUp=true;const fx0=this.effects.length;this.hit(u,t,rawAmount*(u.awaken>=2?1.2:.8),false);u.inFollowUp=false;const fx=this.effects[fx0];if(fx&&fx.kind==='hit'){fx.text='연격 '+fx.text;fx.combo=true;}}
@@ -3384,7 +3385,7 @@ function fxCharge(g,ctx,e,m){const q=fxClamp(e.age/(e.dur*m.hit)),fade=1-fxClamp
 
 // 2) 임팩트: 하얀 핵 섬광, 방사 광선, 두 겹 충격파, 바닥 빛 웅덩이
 function fxImpact(g,ctx,e,m,pt,k=0){const a=e.age-e.dur*m.hit-k*.06;if(a<0||a>.45)return;const q=fxEase(fxClamp(a/.45)),[c0,c1,c2,c3]=m.pal,x=pt.x,y=pt.y;
- ctx.save();fxGlow(ctx,x,y,30+q*16,c2,1-q);fxGlow(ctx,x,pt.fy-2,26+q*20,c1,(1-q)*.7);
+ ctx.save();fxImpactFrame(g,ctx,a,x,y,m,k);fxGlow(ctx,x,y,30+q*16,c2,1-q);fxGlow(ctx,x,pt.fy-2,26+q*20,c1,(1-q)*.7);
  if(a<.12){const s=Math.round(16*(1-a/.12))+6;g.diamond(x,y,s,c1);g.diamond(x,y,Math.max(2,s-6),c0);}
  const n=m.rays,len=12+q*30;for(let i=0;i<n;i++){const ang=i/n*Math.PI*2+k*.4,r0=6+q*14,l=r0+len*(i%2?.6:1);if((i+Math.floor(a*20))%3===0&&a>.25)continue;g.line(x+Math.cos(ang)*r0,y+Math.sin(ang)*r0*.8,x+Math.cos(ang)*l,y+Math.sin(ang)*l*.8,i%2?c2:c1,2);}
  g.ring(x,y,8+q*34,6+q*24,q<.5?c0:c1,q<.4?4:2);if(q>.15)g.ring(x,y,4+(q-.15)*30,3+(q-.15)*20,c2,2);g.ring(x,pt.fy,10+q*36,3+q*9,c3,2);ctx.restore();}
@@ -3476,6 +3477,17 @@ function drawStatusIcons(ctx,u,time,top){if(!u.alive)return;const list=[];
  if(u.tauntUntil>time)list.push(['taunt','#ff6a5a','#ff6a5a']);
  if(!list.length)return;const cell=2,size=8*cell+4,w=list.length*size-2,x0=Math.round(u.x-w/2),y=Math.round(top-size-2);ctx.save();
  list.forEach(([k,c1,c2],i)=>{const x=x0+i*size;ctx.fillStyle='#14101ccc';ctx.fillRect(x-1,y-1,8*cell+2,8*cell+2);fxIcon(ctx,x,y,FX_ICON[k],c1,c2,cell);});ctx.restore();}
+
+// ═══ 임팩트 프레임(격투·액션 도트 게임식) ═══
+// 0~0.05초: 순백 별모양 섬광, 0.05~0.11초: 속성 색 별모양 + 흰 핵, 0~0.2초: 화면 쪽으로 뻗는 집중선, 이후 디더로 얇아지는 충격파.
+function fxStarburst(g,x,y,r,spikes,rot,c,core){for(let i=0;i<spikes;i++){const a=rot+i/spikes*Math.PI*2,len=r*(i%2?.55:1),w=i%2?4:6;for(let s=0;s<len;s+=2){const t=1-s/len,ww=Math.max(2,Math.round(w*t/2)*2);g.px(x+Math.cos(a)*s-ww/2+1,y+Math.sin(a)*s*.85-ww/2+1,ww,c);}}if(core)g.disc(x,y,Math.max(4,Math.round(r*.28/2)*2),Math.max(4,Math.round(r*.24/2)*2),core);}
+function fxImpactFrame(g,ctx,a,x,y,m,k){const [c0,c1,c2,c3]=m.pal,big=m.kind==='hit'?1:.75,rot=k*.5+.2;
+ if(a<.05)fxStarburst(g,x,y,Math.round(46*big),8,rot,'#ffffff','#ffffff');
+ else if(a<.11){fxStarburst(g,x,y,Math.round(40*big),8,rot+.2,c2,null);fxStarburst(g,x,y,Math.round(26*big),8,rot+.2,c1,c0);}
+ if(a<.2){const f=Math.floor(a*40);for(let i=0;i<20;i++){if((i+f)%3===0)continue;const ang=i/20*Math.PI*2+fxNoise(i+f)*.2,r0=56+fxNoise(i+f*3)*24,r1=r0+28+fxNoise(i*5+f)*36;g.line(x+Math.cos(ang)*r0,y+Math.sin(ang)*r0*.8,x+Math.cos(ang)*r1,y+Math.sin(ang)*r1*.8,i%2?c0:c1,2);}}
+ if(a>.06&&a<.42){const q=(a-.06)/.36,rx=20+q*70,ry=rx*.42,n=Math.ceil(rx*1.6);for(let i=0;i<n;i++){if(q>.45&&(i%2))continue;if(q>.75&&(i%4))continue;const ang=i/n*Math.PI*2;g.px(x+Math.cos(ang)*rx,(y+28)+Math.sin(ang)*ry,q<.3?4:2,q<.3?c0:c1);}}}
+// 시전 집중: 스킬 예비 동작 동안 배경을 살짝 어둡게 해 시전자와 이펙트가 도드라지게 합니다.
+function castFocus(b){let f=0;for(const u of b.units){const ev=u.skillVisual,m=SKILL_META[u.id];if(!ev||!m||!u.alive)continue;const d=Math.max(.6,ev.duration||1),a=b.time-ev.start,hit=d*m.hit;if(a<0||a>hit+.3)continue;f=Math.max(f,a<hit?Math.min(1,a/.12):1-(a-hit)/.3);}return Math.max(0,Math.min(1,f));}
 
 
 function pixelLine(ctx,x1,y1,x2,y2,color,size=2){ctx.fillStyle=color;const n=Math.max(1,Math.ceil(Math.hypot(x2-x1,y2-y1)/2));for(let i=0;i<=n;i++)ctx.fillRect(Math.round((x1+(x2-x1)*i/n)/2)*2,Math.round((y1+(y2-y1)*i/n)/2)*2,size,size);}
@@ -3598,13 +3610,21 @@ function drawBattle(canvas,battle,clock=0){
  const scale=w/920,offY=Math.round((h-440*scale)*.55);
  ctx.save();ctx.translate(0,offY);ctx.scale(scale,scale);
  for(const z of battle.zones||[]){const left=z.until-battle.time;if(left<=0)continue;const col=z.team?'#d98fb8':'#9ed583',ry=Math.round(z.r*.36);ctx.globalAlpha=Math.min(1,left*2)*.26;ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(z.x,z.y+4,z.r,ry,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;pixelRing(ctx,z.x,z.y+4,z.r,ry,col,2);for(let k=0;k<10;k++){const a=k/10*Math.PI*2+battle.time*.6,hgt=(battle.time*28+k*11)%24;ctx.fillStyle=k%2?'#ffd6ee':'#d7f5c4';ctx.fillRect(Math.round(z.x+Math.cos(a)*z.r*.72),Math.round(z.y+4+Math.sin(a)*ry*.7-hgt),3,3);}}
+ {const f=castFocus(battle);if(f>0){ctx.save();ctx.fillStyle=`rgba(12,8,24,${(.34*f).toFixed(3)})`;ctx.fillRect(-20,-offY/scale-20,960,h/scale+40);ctx.restore();}}
  for(const u of battle.units.filter(u=>!u.subbedOut).sort((a,b)=>a.y-b.y)){
   ctx.globalAlpha=u.alive?1:.42;ctx.fillStyle='#46382644';ctx.beginPath();ctx.ellipse(u.x,u.y+4,21,6,0,0,Math.PI*2);ctx.fill();
   pixelRing(ctx,u.x,u.y+4,24,8,u.team?'#ba6675':'#6771c3');if(u.awaken&&u.alive)pixelRing(ctx,u.x,u.y+4,28+u.awaken*2,10+u.awaken,'#ffd36b');if(u.stars>=1&&u.alive&&!u.team){ctx.fillStyle='#ffd77a';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText('✦'.repeat(Math.round(u.stars)),u.x,u.y+22);}
   const pose=battleMotion(u,battle,clock),action=pose.name,age=pose.age;
   const leap=u.airUntil>battle.time?Math.sin(Math.min(1,(battle.time-u.jumpStart)/.75)*Math.PI)*68:0;
   if(u.id==='ronaldo'&&u.alive&&u.siuuuUntil>battle.time){pixelRing(ctx,u.x,u.y+3,29,10,'#ffe08b');for(let k=0;k<5;k++){const phase=battle.time*3+k*1.26;ctx.fillStyle='#ffe5a4';ctx.fillRect(Math.round(u.x+Math.cos(phase)*30),Math.round(u.y-30+Math.sin(phase)*24-leap),3,3);}}
+  // 대시 잔상: 지나온 길 위에 옅어지는 실루엣 3개
+  if(u.dash&&u.alive){for(let k=3;k>=1;k--){const gx=u.x+(u.dash.fromX-u.x)*k*.22,gy=u.y+(u.dash.fromY-u.y)*k*.22;ctx.save();ctx.globalAlpha=.42-k*.11;ctx.filter='brightness(1.7) saturate(.35)';drawSD(ctx,u,gx,gy+9-leap,UNIT_SIZE,action,Math.max(0,age),u.facing<0);ctx.restore();}}
+  // 피격 섬광: 맞는 순간 한두 프레임 하얗게, 이어서 붉게 번쩍
+  const hf=u.alive&&u.hitFlashUntil>battle.time?u.hitFlashUntil-battle.time:0;if(hf>0){ctx.save();ctx.filter=hf>.06?'brightness(0) invert(1)':'sepia(1) saturate(6) hue-rotate(-50deg) brightness(1.3)';}
   drawSD(ctx,u,u.x,u.y+9-leap,UNIT_SIZE,action,Math.max(0,age),u.facing<0);
+  if(hf>0)ctx.restore();
+  // 쓰러짐: 몸이 도트 조각으로 흩어지며 위로 사라집니다.
+  if(!u.alive&&u.deathAt!=null){const da=battle.time-u.deathAt;if(da>=0&&da<.8){ctx.save();ctx.globalAlpha=1;const cols=u.team?['#ffffff','#ffb3bd','#e0727e','#7a2f3b']:['#ffffff','#c9cffc','#7f8bf0','#2f3a7a'];for(let i=0;i<30;i++){const n1=Math.abs(Math.sin(i*12.9898+u.uid.length)*43758.5453)%1,n2=Math.abs(Math.sin(i*78.233+7)*43758.5453)%1,sx=u.x+(n1-.5)*40,sy=u.y-8-n2*70,vx=(n1-.5)*50,t=da;if(t>(.45+n2*.35))continue;ctx.fillStyle=cols[Math.min(3,Math.floor(t/.2+i%2))];const sz=i%3?2:4;ctx.fillRect(Math.round((sx+vx*t)/2)*2,Math.round((sy-t*(60+n2*60))/2)*2,sz,sz);}ctx.restore();}}
   drawSkillPixels(ctx,u,battle.time);
   drawAttackPixels(ctx,u,battle.units.find(t=>t.uid===u.action?.targetUid),battle.time);
   if(u.flash>0){ctx.fillStyle='#fff0ba';for(let i=0;i<3;i++)ctx.fillRect(Math.round(u.x+(i-1)*13),Math.round(u.y-49-i%2*9),2,4);}
@@ -3632,7 +3652,7 @@ function drawBattle(canvas,battle,clock=0){
    pixelRing(ctx,e.x,e.y-8,12+p*34,5+p*14,e.color,2);
    for(let j=0;j<8;j++){const a=j*Math.PI/4+p*2,x=e.x+Math.cos(a)*(12+p*27),y=e.y-24+Math.sin(a)*(12+p*24);ctx.fillRect(Math.round(x),Math.round(y),e.kind==='burst'?4:2,e.kind==='burst'?4:2);}
   }
-  ctx.globalAlpha=Math.min(1,e.life*2);ctx.font=e.crit?`bold ${Math.round(20+(1-p)*6)}px sans-serif`:'bold 14px sans-serif';ctx.textAlign='center';ctx.strokeStyle='#352637';ctx.lineWidth=e.crit?4:3;ctx.strokeText(e.text,e.x,e.y-44-p*23);ctx.fillStyle=e.kind==='heal'?'#a2f5b1':e.crit?'#ffcf5a':e.edge>0?'#ffab6b':e.edge<0?'#b8c4d8':'#fff0c4';ctx.fillText(e.text,e.x,e.y-44-p*23);if(e.react){ctx.font='bold 11px sans-serif';ctx.lineWidth=3;ctx.strokeText(e.react,e.x,e.y-62-p*23);ctx.fillStyle='#ffd08a';ctx.fillText(e.react,e.x,e.y-62-p*23);}ctx.globalAlpha=1;
+  const pop=p<.14?1+(1-p/.14)*.7:1,rise=(1-(1-p)**3)*30,ty=e.y-44-rise;ctx.globalAlpha=Math.min(1,e.life*2);ctx.font=`bold ${Math.round((e.crit?24:e.kind==='burst'?18:14)*pop)}px sans-serif`;ctx.textAlign='center';ctx.strokeStyle='#1a1222';ctx.lineWidth=e.crit?5:e.kind==='burst'?4:3;ctx.lineJoin='round';ctx.strokeText(e.text,e.x,ty);ctx.fillStyle=e.kind==='heal'?'#a2f5b1':e.crit?'#ffcf5a':e.edge>0?'#ffab6b':e.edge<0?'#b8c4d8':'#fff0c4';ctx.fillText(e.text,e.x,ty);if(e.react){ctx.font='bold 11px sans-serif';ctx.lineWidth=3;ctx.strokeText(e.react,e.x,ty-18);ctx.fillStyle='#ffd08a';ctx.fillText(e.react,e.x,ty-18);}ctx.globalAlpha=1;
  }
  ctx.restore();ctx.restore();
  // 스킬 임팩트 순간 화면 전체에 원소 색 섬광
@@ -4162,7 +4182,7 @@ function continueDay(){if(state.sacked){sackedModal();return;}if(state.pendingEv
 function render(){const pages={home,units,tactics,elements,training,academy:facilities,expedition,settings:settingsPage,finance:financePage,scout:scouting,arena,records},entering=ui.renderedPage!==ui.page,keepScroll=!entering?$('.tactics-options')?.scrollTop:0;ui.renderedPage=ui.page;$('#app').innerHTML=`${sidebar()}<div class="app-main">${header()}<main class="${entering?'page-enter':''}">${pages[ui.page]()}</main></div>`;paint();tweenCurrency();fitTactics(keepScroll);if(ui.page==='arena'&&ui.battle){updateBattleUI();drawBattle($('#battle-canvas'),ui.battle,performance.now()/1000);}}
 function syncPause(){const btn=$('[data-action=pause]');if(btn)btn.innerHTML=`${icon(ui.paused?'play':'pause',15)} ${ui.paused?'재개':'일시정지'}`;}
 function startBattle(){if(ui.battle&&!ui.battle.done)return;if(!isMatchDay(state)){toast(`경기일까지 ${daysToMatch()}일 남았어요.`);return;}if(state.sacked){sackedModal();return;}ui.battle=new Battle(state);ui.battle.competitionLabel=fixtureLabel(state);ui.battle.competitionType=currentFixture(state)?.type||'league';ui.battle.intro=2.4;ui.battle.count=null;ui.paused=false;ui.battleSpeed=1;render();ui.lastFrame=performance.now();cancelAnimationFrame(ui.animation);ui.animation=requestAnimationFrame(frame);beep();}
-function frame(now){if(!ui.battle)return;const elapsed=Math.min(.1,(now-ui.lastFrame)/1000);ui.lastFrame=now;if(ui.battle.intro>0){if(!ui.paused)ui.battle.intro=Math.max(0,ui.battle.intro-elapsed);const n=ui.battle.intro>.6?Math.ceil((ui.battle.intro-.6)/.6):0;if(n!==ui.battle.count){ui.battle.count=n;playSfx([n?'count':'fight']);}}else if(!ui.paused&&!ui.battle.done){let remain=elapsed*ui.battleSpeed;while(remain>0){const step=Math.min(.05,remain);ui.battle.step(step);remain-=step;}if(ui.battle.done)finishBattle();playSfx(ui.battle.sfx.splice(0));}const cv=$('#battle-canvas');if(cv)drawBattle(cv,ui.battle,now/1000);if(now-ui.uiTick>180){updateBattleUI();ui.uiTick=now;}if(!ui.battle.done||ui.battle.shake>0||performance.now()/1000<(ui.battle.revealAt||0)+.4)ui.animation=requestAnimationFrame(frame);if(ui.battle.done)ui.battle.shake=Math.max(0,ui.battle.shake-elapsed*1.6);}
+function frame(now){if(!ui.battle)return;const elapsed=Math.min(.1,(now-ui.lastFrame)/1000);ui.lastFrame=now;if(ui.battle.intro>0){if(!ui.paused)ui.battle.intro=Math.max(0,ui.battle.intro-elapsed);const n=ui.battle.intro>.6?Math.ceil((ui.battle.intro-.6)/.6):0;if(n!==ui.battle.count){ui.battle.count=n;playSfx([n?'count':'fight']);}}else if(!ui.paused&&!ui.battle.done){let remain=elapsed*ui.battleSpeed;if(ui.battle.hitStop>0){ui.battle.hitStop=Math.max(0,ui.battle.hitStop-elapsed*Math.sqrt(ui.battleSpeed||1));remain*=.08;}while(remain>0){const step=Math.min(.05,remain);ui.battle.step(step);remain-=step;}if(ui.battle.done)finishBattle();playSfx(ui.battle.sfx.splice(0));}const cv=$('#battle-canvas');if(cv)drawBattle(cv,ui.battle,now/1000);if(now-ui.uiTick>180){updateBattleUI();ui.uiTick=now;}if(!ui.battle.done||ui.battle.shake>0||performance.now()/1000<(ui.battle.revealAt||0)+.4)ui.animation=requestAnimationFrame(frame);if(ui.battle.done)ui.battle.shake=Math.max(0,ui.battle.shake-elapsed*1.6);}
 // 경기가 끝나면 약 2초 동안 승리 세리머니를 보여 준 뒤 결과를 띄웁니다.
 const CELEBRATE_SEC=2.2;
 function finishBattle(){ui.battle.revealAt=performance.now()/1000+CELEBRATE_SEC;const reward=settle(state,ui.battle);if(reward){save();beep(ui.battle.winner===0);const headerEl=$('.topbar');if(headerEl)headerEl.outerHTML=header();if(reward.injuries?.length)setTimeout(()=>toast(`🩹 부상 발생: ${reward.injuries.map(j=>`${char(j.id).shortName||char(j.id).name} ${j.label}(${j.name}, ${j.days}일)`).join(', ')} · 훈련 센터에서 치료할 수 있어요.`),900);}updateBattleUI();presentCompetitionResults();}
