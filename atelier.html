@@ -355,10 +355,10 @@ const resultClone=value=>JSON.parse(JSON.stringify(value));
 const resultNumber=value=>Number.isFinite(value)?value:0;
 function competitionStats(history,season,type,cup=null){
  const matches=history.filter(h=>h.season===season&&(h.type||'league')===type&&(!cup||(h.cup||'C')===cup)).slice().reverse(),heroes=new Map();
- const totals={played:matches.length,w:0,d:0,l:0,gf:0,ga:0,damage:0,healing:0,taken:0,kills:0,time:0,gold:0,gems:0,stones:0};
+ const totals={played:matches.length,w:0,d:0,l:0,gf:0,ga:0,damage:0,healing:0,shielded:0,taken:0,kills:0,time:0,gold:0,gems:0,stones:0};
  for(const h of matches){totals[h.win?'w':h.draw?'d':'l']++;totals.gf+=h.score?.[0]||0;totals.ga+=h.score?.[1]||0;totals.time+=resultNumber(h.time);totals.gold+=resultNumber(h.gold);totals.gems+=resultNumber(h.gems);totals.stones+=h.stones??(type==='cup'&&h.win?1:0);
-  const played=new Map();for(const u of h.units||[]){if(u.team!==0)continue;let entry=played.get(u.id);if(!entry){entry={id:u.id,damage:0,healing:0,taken:0,kills:0,rating:0};played.set(u.id,entry);}for(const k of ['damage','healing','taken','kills'])entry[k]+=resultNumber(u[k]);entry.rating=Math.max(entry.rating,resultNumber(u.rating));}
-  for(const p of played.values()){const hero=heroes.get(p.id)||{id:p.id,apps:0,ratingSum:0,mvp:0,kills:0,damage:0,healing:0,taken:0};hero.apps++;hero.ratingSum+=p.rating;hero.mvp+=h.mvp?.team===0&&h.mvp.id===p.id?1:0;for(const k of ['damage','healing','taken','kills']){hero[k]+=p[k];totals[k]+=p[k];}heroes.set(p.id,hero);}
+  const played=new Map();for(const u of h.units||[]){if(u.team!==0)continue;let entry=played.get(u.id);if(!entry){entry={id:u.id,damage:0,healing:0,shielded:0,taken:0,kills:0,rating:0};played.set(u.id,entry);}for(const k of ['damage','healing','shielded','taken','kills'])entry[k]+=resultNumber(u[k]);entry.rating=Math.max(entry.rating,resultNumber(u.rating));}
+  for(const p of played.values()){const hero=heroes.get(p.id)||{id:p.id,apps:0,ratingSum:0,mvp:0,kills:0,damage:0,healing:0,shielded:0,taken:0};hero.apps++;hero.ratingSum+=p.rating;hero.mvp+=h.mvp?.team===0&&h.mvp.id===p.id?1:0;for(const k of ['damage','healing','shielded','taken','kills']){hero[k]+=p[k]||0;totals[k]+=p[k]||0;}heroes.set(p.id,hero);}
  }
  const players=[...heroes.values()].map(p=>({...p,average:Math.round(p.ratingSum/p.apps*100)/100})).sort((a,b)=>b.average-a.average||b.mvp-a.mvp||b.apps-a.apps||b.kills-a.kills||a.id.localeCompare(b.id));
  const minimum=Math.max(1,Math.ceil(matches.length/2)),eligible=players.filter(p=>p.apps>=minimum),mvp=eligible[0]||null;
@@ -1168,7 +1168,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.tactics.captain??=null; ensureFinance(s); s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.lineups=Array.from({length:LINEUP_SLOTS},(_,i)=>s.lineups?.[i]||null); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; Object.values(s.roster).forEach(p=>{p.auto??={on:false,type:'balanced',pri:3};p.auto.pri=autoRank(p.auto.pri);});
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.tactics.captain??=null; ensureFinance(s); s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.lineups=Array.from({length:LINEUP_SLOTS},(_,i)=>s.lineups?.[i]||null); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; ensureTimetable(s); Object.values(s.roster).forEach(p=>{p.auto??={on:false,type:'balanced',pri:3};p.auto.pri=autoRank(p.auto.pri);});
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -1207,6 +1207,7 @@ function unitBonus(state,id){
   if(p.injury){const pen=p.injury.pen;b.hp-=pen;b.atk-=pen;b.def-=pen;b.speed-=Math.round(pen*30);}
   const morale=(p.morale??70)-70;b.atk+=morale/400;b.def+=morale/400;
   const bond=(p.chapter||0)*.02;b.hp+=bond;b.atk+=bond;b.def+=bond;
+  if(state.prep&&state.prep.matchDay===state.matchDay&&state.squad.includes(id)){b.atk+=state.prep.bonus;b.def+=state.prep.bonus;}
   return b;
 }
 function stats(id, progress={}, b={}) { const c=CHARACTERS.find(c=>c.id===id),aw=progress.awaken||0; const legacy=progress.legacy,mult=1+((progress.level||1)-1)*.055+(progress.stars||0)*(legacy?.025:STAR_STEP)+aw*(legacy?.06:AWAKEN_STEP); const tired=1-(progress.fatigue||0)*.002; const maxHp=Math.round(c.hp*mult*(1+(b.hp||0))); return {...c, maxHp, hp:maxHp, atk:Math.round((c.atk*mult+(progress.attack||0))*tired*(1+(b.atk||0))), def:Math.round((c.def*mult+(progress.defense||0))*(1+(b.def||0))), speed:c.speed+(progress.speed||0)+(b.speed||0), level:progress.level||1, crit:.12+(b.crit||0)+(id==='rose'?(aw>=2?.15:.1):0), awaken:aw, skill:aw>=3&&AWAKEN_SKILLS[id]?AWAKEN_SKILLS[id]:c.skill, stars:progress.stars||0, aspd:+((c.aspd||1)*(1+(b.aspd||0))).toFixed(3), steal:b.steal||0, heal:1+(b.heal||0), haste:Math.min(.5,(b.haste||0)+((progress.stars||0)>=5?.1:0)), guts:!!b.guts }; }
@@ -1287,8 +1288,8 @@ const opponentTeam=(state,o,round=state.match)=>teamFromOpponent(o,opponentLevel
 const kills=(b,team)=>b.units.filter(u=>u.team!==team&&!u.alive&&!u.subbedOut).length;
 function simulateMatch(state,home,away,round,salt='',neutral=false){const h=teamInfo(home),a=teamInfo(away);const b=new Battle(null,hash(`${state.season}-${round}-${home}-${away}${salt}`),[opponentTeam(state,h,round),opponentTeam(state,a,round)],{ai:[true,true],home:neutral?null:0});for(let i=0;i<2500&&!b.done;i++)b.step(.05);return {home,away,hs:kills(b,0),as:kills(b,1),w:b.winner};}
 function rateBattle(b){
-  for(const team of [0,1]){const us=b.units.filter(u=>u.team===team),sum=k=>Math.max(1,us.reduce((s,u)=>s+u[k],0)),dmg=sum('damage'),heal=sum('healing'),taken=sum('taken'),res=b.winner===team?.45:b.winner===2?.1:-.25;
-    us.forEach(u=>{u.rating=Math.round(Math.max(3.5,Math.min(10,5.3+u.damage/dmg*4.6+(u.healing>0?u.healing/heal*2:0)+u.taken/taken*1.6+u.kills*.3+(u.alive?.3:0)+res))*10)/10;});}
+  for(const team of [0,1]){const us=b.units.filter(u=>u.team===team),sum=k=>Math.max(1,us.reduce((s,u)=>s+u[k],0)),dmg=sum('damage'),heal=Math.max(1,us.reduce((s,u)=>s+u.healing+(u.shielded||0),0)),taken=sum('taken'),res=b.winner===team?.45:b.winner===2?.1:-.25;
+    us.forEach(u=>{u.rating=Math.round(Math.max(3.5,Math.min(10,5.3+u.damage/dmg*4.6+((u.healing+(u.shielded||0))>0?(u.healing+(u.shielded||0))/heal*2:0)+u.taken/taken*1.6+u.kills*.3+(u.alive?.3:0)+res))*10)/10;});}
   return b.units.reduce((m,u)=>u.rating>m.rating?u:m);
 }
 
@@ -1453,6 +1454,52 @@ function clearBench(state,i){if(!state.bench?.[i])return false;state.bench[i]=nu
 const AUTO_TYPES={balanced:'균형',attack:'공격',defense:'방어',speed:'민첩'},AUTO_PRI={1:'1순위',2:'2순위',3:'3순위',4:'4순위',5:'5순위'};
 function autoRank(v){const old={high:1,normal:3,low:5}[v];const n=old??Number(v);return n>=1&&n<=5?Math.round(n):3;}
 function autoQueue(state){const ids=Object.keys(state.roster);return ids.filter(id=>state.roster[id].auto?.on).sort((a,b)=>autoRank(state.roster[a].auto.pri)-autoRank(state.roster[b].auto.pri)||(state.squad.includes(b)-state.squad.includes(a))||ids.indexOf(a)-ids.indexOf(b));}
+
+// ── 아카데미 시간표(FM식 훈련) ──
+// 경기 다음 날 · 평일 · 경기 전날마다 오전/오후 수업을 정해 두면, 매일 아침 선수단 전원이 시간표대로 훈련합니다(무료).
+// 학업 강도로 성장과 피로를 조절하고, 교수진(최대 3명)을 고용하면 전공 수업 효과가 오릅니다. 대신 매주 급여가 나갑니다.
+const SESSIONS={
+ sword:{name:'검술 실습',icon:'⚔',stat:'attack',fat:7,desc:'공격력 성장'},
+ guard:{name:'방어 훈련',icon:'🛡',stat:'defense',fat:7,desc:'방어력 성장'},
+ agility:{name:'기동 훈련',icon:'💨',stat:'speed',fat:6,desc:'속도 성장'},
+ tactics:{name:'전술 강의',icon:'📜',fat:3,desc:'지정한 팀 훈련 경험치 +1'},
+ teamwork:{name:'합동 훈련',icon:'🤝',fat:4,desc:'전원 호감도 +1 · 사기 +1'},
+ analysis:{name:'상대 분석',icon:'🔍',fat:2,desc:'다음 경기 공격·방어 +3%'},
+ recovery:{name:'회복 수업',icon:'🌙',fat:-12,desc:'피로 −12 · 사기 +1'},
+ study:{name:'자율 학습',icon:'📖',fat:0,desc:'경험치만 조금'}
+};
+const INTENSITY={light:{name:'가볍게',grow:.7,fat:.5,desc:'성장 ×0.7 · 피로 ×0.5'},normal:{name:'보통',grow:1,fat:1,desc:'성장 ×1 · 피로 ×1'},hard:{name:'강하게',grow:1.4,fat:1.7,desc:'성장 ×1.4 · 피로 ×1.7 · 부상 위험↑'}};
+const TIMETABLE_ROWS={after:'경기 다음 날',normal:'평일',before:'경기 전날'};
+const SESSION_GROWTH=.6;
+function ensureTimetable(state){state.timetable??={after:['recovery','sword'],normal:['sword','agility'],before:['guard','analysis'],intensity:'normal',drill:null,rest:[]};state.timetable.rest??=[];state.faculty??=[];return state.timetable;}
+function dayKind(state){if(isMatchDay(state))return 'match';if(state.day===state.matchDay-1)return 'before';const h=state.history?.[0];if(h&&h.season===state.season&&h.day===state.day-1)return 'after';return 'normal';}
+function setSession(state,row,slot,sid){const T=ensureTimetable(state);if(!TIMETABLE_ROWS[row]||![0,1].includes(slot)||!SESSIONS[sid])return false;T[row][slot]=sid;return true;}
+function setIntensity(state,key){if(!INTENSITY[key])return false;ensureTimetable(state).intensity=key;return true;}
+function toggleRest(state,id){const T=ensureTimetable(state);if(!state.roster[id])return false;T.rest=T.rest.includes(id)?T.rest.filter(x=>x!==id):[...T.rest,id];return T.rest.includes(id);}
+function setFocus(state,id,stat){const p=state.roster[id];if(!p||!['attack','defense','speed',''].includes(stat))return false;p.focus=stat||null;return true;}
+// 교수진: 학기마다 후보가 바뀝니다. 별 하나당 전공 수업 효과 +10%, 주급은 별이 높을수록 가파르게 오릅니다.
+const FACULTY_MAX=3;
+const FACULTY_NAMES=['그레이엄','세실리아','오스윈','마르그리트','레오폴드','이졸데','바실','로잘린','테오도르','엘로이즈','카시안','미네르바','하인리히','아우렐리아','도미닉','프레야'];
+const FACULTY_SPECS=['sword','guard','agility','tactics','analysis','recovery'];
+const facultyPayOf=stars=>Math.round(50*stars**1.6/10)*10;
+function facultyMarket(state){if(state.facultyMarket?.season===state.season)return state.facultyMarket.list;const rng=random(hash(`faculty-${state.season}-${state.division}`)),used=new Set((state.faculty||[]).map(f=>f.name)),names=shuffle(FACULTY_NAMES.filter(n=>!used.has(n)),rng);
+ const list=Array.from({length:6},(_,i)=>{const r=rng(),stars=r<.3?1:r<.6?2:r<.82?3:r<.95?4:5;return {name:names[i],spec:FACULTY_SPECS[(i+Math.floor(rng()*6))%6],stars,pay:facultyPayOf(stars)};});
+ state.facultyMarket={season:state.season,list};return list;}
+function facultyBonus(state,sid){return 1+(state.faculty||[]).filter(f=>f.spec===sid).reduce((v,f)=>v+.1*f.stars,0);}
+const facultyPay=state=>(state.faculty||[]).reduce((v,f)=>v+f.pay,0);
+function hireFaculty(state,i){const list=facultyMarket(state),f=list[i];ensureTimetable(state);if(!f||f.hired||state.faculty.length>=FACULTY_MAX||state.gold<f.pay)return false;state.gold-=f.pay;book(state,-f.pay,'교수진 급여');state.faculty.push({...f,since:state.day});f.hired=true;addNews(state,'교수진',`${f.name} 교수(${SESSIONS[f.spec].name} ★${f.stars}) 부임 · 주급 ${f.pay.toLocaleString()} G`);return true;}
+function fireFaculty(state,name){const before=(state.faculty||[]).length;state.faculty=(state.faculty||[]).filter(f=>f.name!==name);const m=state.facultyMarket?.list?.find(f=>f.name===name);if(m)m.hired=false;return state.faculty.length<before;}
+function timetableDay(state){const T=ensureTimetable(state),kind=dayKind(state),out={day:state.day,kind,sessions:[],gains:{},pay:0};
+ if(state.day%7===0){const pay=facultyPay(state);if(pay){state.gold-=pay;book(state,-pay,'교수진 급여');out.pay=pay;}}
+ if(kind==='match')return out;
+ const I=INTENSITY[T.intensity]||INTENSITY.normal,lvl=state.facilities?.training||0,ids=Object.keys(state.roster).filter(id=>!state.roster[id].injury&&!T.rest.includes(id));
+ for(const sid of T[kind]||[]){const S=SESSIONS[sid];if(!S)continue;out.sessions.push(sid);const prof=facultyBonus(state,sid);
+  if(S.stat)ids.forEach(id=>{const p=state.roster[id],g=trainGain(p,S.stat,lvl)*SESSION_GROWTH*I.grow*prof*(p.focus===S.stat?1.3:1);p.growBank??={};const v=(p.growBank[S.stat]||0)+g,whole=Math.floor(v);p.growBank[S.stat]=v-whole;if(whole){p[S.stat]+=whole;const o=out.gains[id]??={};o[S.stat]=(o[S.stat]||0)+whole;}});
+  if(sid==='tactics'){const d=T.drill&&state.teamDrills?.[T.drill]?T.drill:state.teamColor||TEAM_DRILLS[0].id,v=state.teamDrills?.[d];if(v&&v.lv<TEAM_DRILL_MAX){T.tBank=(T.tBank||0)+(prof>=1.3?1:.5);const add=Math.floor(T.tBank);T.tBank-=add;v.xp+=add;if(v.xp>=drillNeed(v.lv)){v.lv++;v.xp=0;if(!state.teamColor)state.teamColor=d;out.drillUp=d;}out.drill=d;}}
+  if(sid==='teamwork')ids.forEach(id=>{const p=state.roster[id];p.affinity=Math.min(100,(p.affinity||0)+1);p.morale=clamp100((p.morale??70)+1);});
+  if(sid==='analysis')state.prep={matchDay:state.matchDay,bonus:Math.round(.03*prof*1000)/1000};
+  ids.forEach(id=>{const p=state.roster[id],f=S.fat<0?S.fat*prof:S.fat*I.fat;p.fatigue=Math.max(0,Math.min(100,Math.round(p.fatigue+f)));p.xp+=Math.round((S.stat?10:6)*I.grow);levelUp(p);if(sid==='recovery')p.morale=clamp100((p.morale??70)+1);});}
+ return out;}
 function autoTrainDay(state){const cfg=state.autoTrain;if(!cfg?.on)return null;const out={day:state.day,trained:[],tired:[],broke:[],team:null,spent:0},g0=state.gold;
   autoQueue(state).forEach((id,i)=>{const p=state.roster[id];if(p.trained===state.day)return;if(p.fatigue>=cfg.fatigueCap){out.tired.push(id);return;}if(state.gold-TRAIN_COST<cfg.reserve){out.broke.push(id);return;}const type=p.auto.type==='balanced'?['attack','defense','speed'][(state.day+i)%3]:p.auto.type;if(train(state,id,type))out.trained.push({id,type});});
   if(cfg.team&&state.teamTrained!==state.day&&state.gold-TEAM_TRAIN_COST>=cfg.reserve)out.team=teamTrain(state,cfg.team)||null;
@@ -1683,7 +1730,7 @@ function dailyPaper(state){
   A.sort((a,b)=>b.p-a.p);const out=[],cnt={};for(const a of A){if(out.length>=9)break;if(cnt[a.tag])continue;out.push(a);cnt[a.tag]=1;}for(const a of A){if(out.length>=9)break;if(out.includes(a)||cnt[a.tag]>=2)continue;out.push(a);cnt[a.tag]++;}out.sort((a,b)=>b.p-a.p);
   if(!out.length)out.push({tag:'아카데미',title:'오늘도 평화로운 아스트라',body:'큰 소식 없는 하루. 훈련장에는 땀방울만 가득하다.'});
   return {season:state.season,day:state.day,no:(state.paper?.no||0)+1,seen:false,articles:out.map(({p,...a})=>a)};}
-function rest(state){restDay(state);state.lastAuto=autoTrainDay(state);quarterTick(state);streakScoop(state);publishPaper(state);}
+function rest(state){restDay(state);state.lastAuto=null;state.lastClass=timetableDay(state);quarterTick(state);streakScoop(state);publishPaper(state);}
 function restDay(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
 // 하루를 넘기고, 인연 이야기나 아카데미 이벤트가 생길 수 있습니다.
 function advanceDay(state,rng=Math.random){
@@ -1827,7 +1874,7 @@ class Battle {
     {const fd=this.tc(t.team,'formation'),fa=this.tc(u.team,'formation'),fin=this.tc(u.team,'finisher');if(fd&&t.line==='front')amount*=1-.03*fd;if(fa&&u.line==='back')amount*=1+.03*fa;if(fin&&t.hp/t.maxHp<=.5)amount*=1+.05*fin;}
     if(skill&&u.awaken>=3)amount*=1.3;if(this.guarding(t.team))amount*=GUARD_DEF;if(this.guarding(u.team)&&u.range<70)amount*=GUARD_COUNTER;
     const edge=elementEdge(u.element,t.element);amount*=elementMult(u.element,t.element);
-    let crit=this.rng()<((u.crit??.12)+(goat?missing*.25:0));if(u.id==='yuzu'&&!u.struck){crit=true;u.struck=true;}let damage=Math.max(1,Math.round(amount*100/(100+t.def*(1-armorPierce)*this.potionDef(t))*(crit?(u.id==='rose'?(aw2?2.2:2):1.6):1)));const blocked=Math.min(t.shield,damage);t.shield-=blocked;damage=Math.min(t.hp,damage-blocked);
+    let crit=this.rng()<((u.crit??.12)+(goat?missing*.25:0));if(u.id==='yuzu'&&!u.struck){crit=true;u.struck=true;}let damage=Math.max(1,Math.round(amount*100/(100+t.def*(1-armorPierce)*this.potionDef(t))*(crit?(u.id==='rose'?(aw2?2.2:2):1.6):1)));const blocked=Math.min(t.shield,damage);t.shield-=blocked;if(blocked>0){const src=t.shieldSrc&&t.shieldSrc.team===t.team?t.shieldSrc:t;src.shielded=(src.shielded||0)+blocked;}damage=Math.min(t.hp,damage-blocked);
     if(damage>=t.hp&&t.guts&&!t.gutsUsed){damage=t.hp-1;t.gutsUsed=true;this.log(`${t.name} · 불굴! 체력 1로 버텨냅니다`,t.team===0?'good':'bad');this.effects.push({kind:'heal',x:t.x,y:t.y,color:'#ffd27a',text:'불굴!',life:1,total:1});}
     t.hp-=damage;t.taken+=damage;u.damage+=damage;t.flash=.18;
     if(t.passiveType==='hotArmor'&&damage>0){const step=t.awaken>=2?3:2,cap=t.awaken>=2?45:30;t.forgeDef=t.forgeDef||0;if(t.forgeDef<cap){t.forgeDef+=step;t.def+=step;}
@@ -1845,7 +1892,7 @@ class Battle {
     return damage;}
   healUnit(u,a,amount){if(!a.alive)return;amount*=1+.05*this.tc(a.team,'teamwork');const boost=u.passiveType==='bloomHeal'&&a.hp/a.maxHp<=.35?(u.awaken>=2?1.45:1.3):1,heal=Math.min(a.maxHp-a.hp,Math.round(amount*(u.heal||1)*(u.awaken>=3?1.3:1)*boost));a.hp+=heal;u.healing+=heal;this.effects.push({kind:'heal',x:a.x,y:a.y,color:'#a9e8bd',text:'+'+heal,life:1,total:1});}
   slowUnit(a,duration){if(a.slowImmuneUntil<=this.time)a.slow=Math.max(a.slow,duration);}
-  shieldUnit(u,a,ratio,duration){a.shield+=Math.round(u.maxHp*ratio*(u.awaken>=3?1.3:1));a.shieldTime=Math.max(a.shieldTime,duration);this.effects.push({kind:'heal',x:a.x,y:a.y,color:u.color,text:'보호막',life:.9,total:.9});}
+  shieldUnit(u,a,ratio,duration){a.shieldSrc=u;a.shield+=Math.round(u.maxHp*ratio*(u.awaken>=3?1.3:1));a.shieldTime=Math.max(a.shieldTime,duration);this.effects.push({kind:'heal',x:a.x,y:a.y,color:u.color,text:'보호막',life:.9,total:.9});}
   face(u,t){if(t&&Math.abs(t.x-u.x)>3)u.facing=t.x>u.x?1:-1;}
   moveUnit(u,x,y,amount){const dx=x-u.x,dy=y-u.y,d=Math.hypot(dx,dy),step=Math.min(d,Math.max(0,amount));u.moving=step>.02;if(!u.moving)return;u.x+=dx/d*step;u.y+=dy/d*step;u.walkDistance+=step;if(Math.abs(dx)>.3)u.facing=dx>0?1:-1;}
   beginAction(u,kind,t,effect=null,duration=MOTION_CLIPS[kind]?.duration||.6){this.face(u,t);const impact=MOTION_CLIPS[kind]?.impact??0;u.action={kind,start:this.time,duration,impact,effect,resolved:false,targetUid:t?.uid};u.moving=false;u.attackLockUntil=this.time+duration;if(kind==='cast')u.cast=duration;return u.action;}
@@ -1891,7 +1938,7 @@ class Battle {
     if(u.id==='ronaldo'){this.hit(u,t,u.atk*2.2,true);const fx=this.effects.at(-1);if(fx)fx.kind='football';const dx=t.x-u.x,dy=t.y-u.y,d=Math.max(1,Math.hypot(dx,dy));t.knockback={start:this.time,duration:.2,fromX:t.x,fromY:t.y,toX:Math.max(65,Math.min(855,t.x+dx/d*55)),toY:Math.max(100,Math.min(325,t.y+dy/d*55))};}
     else if(u.id==='mika')this.potionZone(u,t);
     else if(u.role==='서포터'){this.units.filter(a=>a.team===u.team&&a.alive).forEach(a=>{const heal=Math.min(a.maxHp-a.hp,Math.round(u.atk*2.7*(u.heal||1)*(u.awaken>=3?1.3:1)));a.hp+=heal;u.healing+=heal;this.effects.push({kind:'heal',x:a.x,y:a.y,color:'#8de5b3',text:'+'+heal,life:1,total:1});});}
-    else if(u.role==='탱커'){u.shield+=Math.round(u.maxHp*.24*(u.awaken>=3?1.3:1));u.shieldTime=5;if(u.id==='aria'){u.tauntUntil=this.time+5;this.effects.push({kind:'heal',x:u.x,y:u.y-24,color:'#ff8a6a',text:'도발!',life:.9,total:.9});this.log(`${u.name} · 도발! 주변 적의 공격을 끌어당깁니다`,u.team===0?'good':'bad');}this.effects.push({kind:'heal',x:u.x,y:u.y,color:'#9cbcff',text:'보호막',life:1,total:1});}
+    else if(u.role==='탱커'){u.shieldSrc=u;u.shield+=Math.round(u.maxHp*.24*(u.awaken>=3?1.3:1));u.shieldTime=5;if(u.id==='aria'){u.tauntUntil=this.time+5;this.effects.push({kind:'heal',x:u.x,y:u.y-24,color:'#ff8a6a',text:'도발!',life:.9,total:.9});this.log(`${u.name} · 도발! 주변 적의 공격을 끌어당깁니다`,u.team===0?'good':'bad');}this.effects.push({kind:'heal',x:u.x,y:u.y,color:'#9cbcff',text:'보호막',life:1,total:1});}
     else if(u.role==='마법사'){const hits=this.units.filter(a=>a.team!==u.team&&a.alive&&Math.hypot(a.x-t.x,a.y-t.y)<135);hits.forEach(a=>{this.hit(u,a,u.atk*1.9,true);if(u.id==='seraph'){a.slow=3;a.frost=u.awaken>=2?1.25:1.15;}});if(u.id==='luna'&&hits.length>=2){u.skillCd*=u.awaken>=2?.45:.6;this.effects.push({kind:'heal',x:u.x,y:u.y,color:'#c9b4ff',text:'별의 계시',life:1,total:1});}}
     else if(u.role==='암살자'){const back=this.units.filter(a=>a.team!==u.team&&a.alive).sort((a,b)=>b.range-a.range)[0];this.dash(u,back,2.5);}
     else if(u.role==='궁수'){for(let j=0;j<3&&t.alive;j++)this.hit(u,t,u.atk*.9,true);}
@@ -1961,7 +2008,7 @@ function settle(state,battle){
     else boardShift(state,cupWin?(L==='C'?2:1):L==='C'&&stage===(cup.byes?.includes('AST')?1:0)?-3:0);
   }
   const ourMvp=mvp.team===0?mvp.id:null,starters=battle.units.filter(u=>u.team===0&&!u.subbedOut).map(u=>u.id),speaker=ourMvp||starters[Math.floor(battle.time)%starters.length],good0=type==='cup'?cupWin:win,quote={id:speaker,text:voice(speaker,ourMvp?'mvp':good0?'win':'lose',state.day+state.slot)};
-  state.history.unshift({opponent:battle.opponent.name,opp,type,label,full:type==='cup'?`${fx.cupName} ${fx.stageName}`:`${state.division}부 리그 ${round+1}라운드`,cup:type==='cup'?fx.letter:null,stage:type==='cup'?fx.stage:null,outcome:type==='cup'?(cupWin?(fx.stage>=stagesOf(cupOf(state,fx.letter)).length-1?'우승!':`${stagesOf(cupOf(state,fx.letter))[fx.stage+1]} 진출`):`${fx.stageName} 탈락`):null,quote,win:type==='cup'?cupWin:win,draw:type==='cup'?false:draw,pen:type==='cup'&&draw,score,round:round+1,time:Math.round(battle.time),day:state.day,season:state.season,gold,gems,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},units:battle.units.map(u=>({id:u.id,team:u.team,damage:u.damage,healing:u.healing,kills:u.kills,taken:u.taken,rating:u.rating,alive:u.alive,sub:u.uid.includes('s')||!!u.subbedOut}))});state.history=state.history.slice(0,60);
+  state.history.unshift({opponent:battle.opponent.name,opp,type,label,full:type==='cup'?`${fx.cupName} ${fx.stageName}`:`${state.division}부 리그 ${round+1}라운드`,cup:type==='cup'?fx.letter:null,stage:type==='cup'?fx.stage:null,outcome:type==='cup'?(cupWin?(fx.stage>=stagesOf(cupOf(state,fx.letter)).length-1?'우승!':`${stagesOf(cupOf(state,fx.letter))[fx.stage+1]} 진출`):`${fx.stageName} 탈락`):null,quote,win:type==='cup'?cupWin:win,draw:type==='cup'?false:draw,pen:type==='cup'&&draw,score,round:round+1,time:Math.round(battle.time),day:state.day,season:state.season,gold,gems,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},units:battle.units.map(u=>({id:u.id,team:u.team,damage:u.damage,healing:u.healing,shielded:Math.round(u.shielded||0),kills:u.kills,taken:u.taken,rating:u.rating,alive:u.alive,sub:u.uid.includes('s')||!!u.subbedOut}))});state.history=state.history.slice(0,60);
   const levels={},played=new Set(battle.units.filter(u=>u.team===0).map(u=>u.id)),good=win||cupWin,injuries=[],growth=[];
   Object.entries(state.roster).forEach(([id,p])=>{
     if(!played.has(id)){p.morale=clamp100(p.morale-2);return;}
