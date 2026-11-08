@@ -28,7 +28,7 @@ const INTAKE_HEROES=[
  {id:'nemi',name:'네미',surname:'네온 주파수의 전령',element:'전기',role:'서포터',age:22,color:'#dcaddf',hair:'#bc82c7',weapon:'heal',skill:'충전 신호',skillType:'cadetHeal',fx:'lightning',passiveType:'bloomHeal',outfit:'라일락 트윈테일 · 네온 헤드셋 · 검정 무대 코르셋 · 안테나 홀',motif:'무전 / 네온 / 신호',home:'벨라돈나 방송 동아리',bio:'응원 방송으로 팀의 호흡을 맞추는 무전 담당. 작은 잡음 속에서도 지친 동료의 목소리를 알아듣는다.',quote:'잘 들려? 아직 끝난 거 아니야!',dream:'가장 작은 구조 신호도 듣기',secret:'유즈가 간식을 숨긴 장소를 방송할 뻔했다.',friends:['raika','yuzu'],art:'adult woman age 22, lilac twin tails, neon yellow headset, black and lilac fitted stage corset with cropped jacket, asymmetric stockings and ankle boots, compact antenna microphone wand, electric brooch, playful glamorous radio idol'},
  {id:'briar',name:'브라이어',surname:'산딸기 울타리의 검객',element:'풀',role:'전사',age:25,color:'#99b66c',hair:'#a4515d',weapon:'sword',skill:'가시 덩굴 베기',skillType:'cadetShot',fx:'petals',passiveType:'tideMark',outfit:'베리빛 땋은 머리 · 잎사귀 코르셋 · 덩굴 세검',motif:'산딸기 / 울타리 / 가시',home:'그린베일 울타리 정비부',bio:'온실 울타리의 가지를 다듬으며 검술을 배웠다. 다가오지 말라는 가시는 안쪽의 어린 싹을 위한 약속이다.',quote:'이 안쪽은 우리 친구들 자리야.',dream:'꽃을 다치게 하지 않는 검술',secret:'로완 몰래 울타리 한쪽을 산딸기 길로 만들었다.',friends:['flora','rowan'],art:'adult woman age 25, berry red long braid, green eyes, leaf-shaped green leather corset with bare shoulders, split petal skirt and dark thigh boots, elegant thorn rapier, small raspberry hair ornaments, mature confident forest duelist'},
  {id:'clover',name:'클로버',surname:'벌꿀 정찰대의 사수',element:'풀',role:'궁수',age:23,color:'#baca72',hair:'#d9b667',weapon:'bow',skill:'벌침 사격',skillType:'cadetShot',fx:'arrows',passiveType:'steadyWind',outfit:'꿀빛 양갈래 · 클로버 베레모 · 노초록 코르셋 · 벌집 활',motif:'벌꿀 / 클로버 / 정찰',home:'그린베일 양봉 연구부',bio:'벌들이 돌아오는 길을 따라 적의 움직임을 살피는 정찰생. 따끔한 화살 뒤에는 꼭 달콤한 응원이 따라온다.',quote:'한 발만 따끔할 거야!',dream:'숲과 아카데미가 나누는 꿀 같은 평화',secret:'미카의 물약에 들어가는 꿀은 전부 직접 고른다.',friends:['mika','flora'],art:'adult woman age 23, honey blonde twin braids, clover green beret, yellow and green fitted corset ranger dress with short petal skirt, thigh-high stockings and brown boots, compact honeycomb bow, bee brooch, cute glamorous adult archer'}
-].map(c=>{const [hp,atk,def,speed,range]=intakeRoles[c.role],p=intakePassives[c.passiveType];return {rarity:'R',gender:'female',...c,hp:c.rarity==='SSR'?Math.round(hp*1.12):hp,atk:c.rarity==='SSR'?Math.round(atk*1.18):atk,def,speed,range,shade:c.color,eye:c.color,style:'long',passive:p[0],passiveDesc:p[1],skillDesc:({prismVerdict:'대상 방어력 35%를 무시하는 공격력 270%의 빛 검격. 가장 다친 아군에게 자신의 최대 체력 8% 보호막을 4초간 부여.',gemFault:'대상 주변에 공격력 210%의 수정 지진과 2초 둔화. 자신에게 최대 체력 14% 보호막을 4초간 부여.',cadetShot:'공격력 230%의 정밀 타격. 대상을 2초간 둔화.',cadetBurst:'대상 주변 좁은 범위에 공격력 165% 피해와 1.5초 둔화.',cadetHeal:'가장 다친 아군 2명을 공격력 230%만큼 치유하고 둔화 해제.',cadetGuard:'자신에게 최대 체력 24%의 보호막을 5초간 부여. 주변 적을 2초간 둔화.',cadetDash:'후열 적에게 돌진해 공격력 225% 피해. 3초간 받는 피해 20% 감소.'})[c.skillType]};});
+].map(c=>{const [hp,atk,def,speed,range]=intakeRoles[c.role],p=intakePassives[c.passiveType];return {rarity:'R',gender:'female',...c,hp:c.rarity==='SSR'?Math.round(hp*1.12):hp,atk:c.rarity==='SSR'?Math.round(atk*1.18):atk,def,speed,range,shade:c.color,eye:c.color,style:'long',passive:p[0],passiveDesc:p[1],skillDesc:({prismVerdict:'대상 방어력 35%를 무시하는 공격력 270%의 빛 검격. 가장 다친 아군에게 자신의 최대 체력 8% 보호막을 4초간 부여.',gemFault:'대상 주변에 공격력 210%의 수정 지진과 2초 둔화. 자신에게 최대 체력 14% 보호막을 4초간 부여.',cadetShot:'공격력 230%의 정밀 타격. 대상을 2초간 둔화.',cadetBurst:'대상 주변 좁은 범위에 공격력 165% 피해와 1.5초 둔화.',cadetHeal:'가장 다친 아군 2명을 공격력 260%만큼 치유하고 최대 체력 6% 보호막(3초)·둔화 해제. 나머지 아군도 공격력 120%만큼 치유.',cadetGuard:'자신에게 최대 체력 24%의 보호막을 5초간 부여. 주변 적을 2초간 둔화.',cadetDash:'후열 적에게 돌진해 공격력 225% 피해. 3초간 받는 피해 20% 감소.'})[c.skillType]};});
 
 // 메인 히로인 린 · 닉스: 대사, 프로필, 인연 이야기를 따로 다듬어 둡니다.
 // lore.js(대사·프로필)와 content.js(인연 이야기)가 이 데이터를 덮어써서 씁니다.
@@ -424,9 +424,144 @@ const EXPANSION_HEROES = [
 ].map(c=>({...c,shade:c.color,eye:c.color,style:'short'}));
 
 EXPANSION_HEROES.push(...INTAKE_HEROES);
+// 확장·신규 영웅의 인연 이야기 3장(제목, 본문, 다정한 선택, 단호한 선택) — 영웅마다 직접 쓴 이야기
+const EXPANSION_BONDS={
+ ignis:[['구멍 난 장갑','밤늦은 공방에 불이 켜져 있다. 이그니스가 테오의 방패를 두드리는데, 정작 자기 장갑엔 손가락만 한 구멍이 났다. “내 건 나중에. 녀석들 건 내일 써야 하니까.”','“오늘은 네 장갑부터 고치자. 망치는 내가 들게.”','“너도 내일 싸울 사람이야. 네 장비 점검도 훈련이다.”'],
+  ['망치 손잡이 속 사진','망치 손잡이가 빠지며 낡은 사진 한 장이 떨어진다. 화산 공방 앞에 선 다섯 식구. “다들 대장장이야. 나만 학교에 왔지. 돌아갈 때 자랑할 게 있어야 하는데.”','“이미 충분히 자랑스러운 아들이야.”','“그럼 이번 학기 우승을 들고 돌아가자.”'],
+  ['마지막 담금질','결승 전날, 이그니스가 팀원 다섯의 갑옷을 나란히 세워 두었다. 가슴판 안쪽마다 작은 불꽃 문양. “불 속에서 단단해진 강철이야. 다 돌아오라는 표시지.”','“네 갑옷엔 내가 새겨 줄게.”','“좋아. 이 갑옷 입고 한 명도 안 쓰러진다.”']],
+ maren:[['조수표 위의 전술','마렌이 전술판 위에 조수표를 겹쳐 놓는다. “상대의 공세는 밀물처럼 7초 간격이에요. 물러설 때를 알면, 이길 때도 보여요.”','“네 눈으로 보니 전장이 바다 같네.”','“그 7초, 실전에서 증명해 보자.”'],
+  ['수영은 비밀','해양 실습 날, 마렌이 부두 끝에서 머뭇거린다. “…사실 저 수영 잘 못해요. 지도만 그리다 보니.” 멀리서 핀이 손을 흔든다.','“괜찮아. 내가 옆에서 같이 들어갈게.”','“오늘부터 아침 수영 15분. 항해사가 물을 무서워하면 안 되지.”'],
+  ['폭풍 속 항로','폭우 속 원정 경기. 마렌이 젖은 지도를 펼쳐 모두의 위치를 표시한다. “아무도 잃지 않아요. 이번 항해는요.”','“선장은 너야. 우리가 따라갈게.”','“항로대로 간다. 끝까지 키 잡아.”']],
+ nerise:[['분수의 이름','훈련장 분수 앞에서 네리스가 무언가에게 인사한다. “안녕, 퐁퐁 3세.” 코치와 눈이 마주치자 얼굴이 새빨개진다. “이, 이건 외교상 비밀이에요!”','“좋은 이름이네. 퐁퐁 3세에게도 안부 전해 줘.”','“비밀은 지켜 줄게. 대신 오늘은 추가 훈련.”'],
+  ['예법보다 노래','산호 왕국 사절단이 다녀갔다. 내내 굳은 얼굴로 인사만 하던 네리스가 털썩 주저앉는다. “왕국에선 웃으면 안 된대요. 여기선… 웃어도 되죠?”','“여긴 네 팀이야. 마음껏 웃어.”','“웃어도 돼. 대신 경기장에선 진주처럼 단단하게.”'],
+  ['두 세계의 노래','승리한 밤, 네리스가 바다 노래를 흥얼거리자 노엘이 화음을 얹는다. “육지와 바다가 같이 노래하네요. 제 꿈이 여기서 시작됐어요.”','“다음 축제엔 둘이 무대에 서 봐.”','“그 노래, 우승 세리머니 때 부르자.”']],
+ zephyr:[['창문 출석','아침 조회 직전, 창문으로 제피르가 뛰어든다. “지각 아님! 3초 남았어!” 가방에서 팀원들 편지가 우르르 쏟아진다. “아, 배달도 겸했어.”','“덕분에 아침이 즐겁네. 다음엔 문으로 와.”','“3초면 실전에선 한 번 베일 시간이야. 문으로 다녀.”'],
+  ['뜯지 못한 편지','우편 가방 맨 아래 빛바랜 봉투 하나. 받는 사람: 제피르. “공중도시를 떠날 때 받은 첫 편지야. 뭐라고 써 있을지 몰라서… 무서워서 못 뜯었어.”','“준비될 때까지 기다려도 돼. 그때 같이 읽자.”','“무서운 건 열어 봐야 끝나. 지금 같이 뜯자.”'],
+  ['특급 배송','결승 전, 제피르가 봉투를 연다. 어머니의 글씨. “어디로 날아가든, 돌아올 창문은 열어 둘게.” 그가 고글을 내린다. “승리 소식, 직접 배달하러 가야겠다.”','“그 편지, 우승 트로피 옆에 두자.”','“좋아. 이번 배송은 지연 없다.”']],
+ aerin:[['쉬는 날개','옥상 난간에서 에린이 접힌 날개를 다듬는다. 한쪽 깃이 비뚤다. “다친 뒤로 잘 안 펴져요. 그래도 화살은 날아가니까요.”','“네 화살이 곧 네 날개야.”','“그럼 화살로 하늘을 다 덮어 보자.”'],
+  ['깃털 하나의 인사','훈련장 바닥의 작은 깃털을 주운 에린이 고개를 숙인다. “고마워.” “누구한테?” “바람한테요. 여기까지 데려다줬으니까.”','“그 감사하는 마음, 나도 배워야겠다.”','“바람이 데려다준 만큼, 이번 경기도 바람을 타자.”'],
+  ['다시 가로지르는 하늘','실비와 제피르가 만든 순풍에 에린이 활을 당긴다. 화살 세 발이 경기장 끝까지 날아간다. “봤어요? 하늘을 건넜어요.”','“봤어. 날개보다 더 멀리 갔어.”','“다음엔 다섯 발. 하늘을 우리 거로 만들자.”']],
+ gaia:[['거친 손의 화분','가이아가 주먹 붕대를 풀고 작은 화분에 물을 준다. “싸우는 손이라고 꽃을 못 키우는 건 아니잖아?”','“그 손이라 꽃이 더 튼튼하게 자랄 거야.”','“좋아. 내일은 그 손으로 전열을 받쳐.”'],
+  ['도예 수업','도예실에서 가이아가 찌그러진 그릇을 들고 웃는다. “격투보다 이게 어렵네. 힘을 빼야 모양이 나와.”','“힘을 뺄 줄 아는 것도 강함이야.”','“전투도 똑같아. 내일은 힘 조절 훈련이다.”'],
+  ['받쳐 주는 땅','테오가 넘어지려는 순간, 가이아가 어깨로 받친다. “딛고 서. 땅은 우리 편이라고 했잖아.” 옆에서 아리아가 고개를 끄덕인다.','“너 같은 주장이 있어서 든든해.”','“그 자세 그대로, 결승까지 무너지지 마.”']],
+ glacia:[['마지막 수프','식당에 마지막 한 그릇이 남았다. 글레이시아가 조용히 막내 앞으로 민다. “저는 배부릅니다.” 그 순간 배에서 꼬르륵 소리가 난다.','“다음 수프는 내가 너한테 양보할게.”','“당주도 굶으면 못 싸운다. 반씩 나눠 먹자.”'],
+  ['망토 속 손난로','눈 오는 날, 글레이시아의 망토에서 손난로가 툭 떨어진다. 모노클 너머 눈이 커진다. “…가문에는 비밀로 해 주시겠습니까.”','“추위 타는 북녘 귀족이라니, 귀엽잖아.”','“비밀은 지킬게. 대신 시브한테 충전 부탁해.”'],
+  ['이름 대신 선택','가문의 편지가 도착했다. 돌아와 당주가 되라는 내용이다. 글레이시아가 편지를 접는다. “이번만은 제가 고르겠습니다. 이 팀의 방패로 남겠다고.”','“네 선택을 존중해. 끝까지 함께하자.”','“그 선택, 우승으로 증명하자.”']],
+ eira:[['창끝의 눈꽃','야간 행군 훈련. 에이라의 창끝에 눈꽃이 피어 길을 비춘다. “따라오세요. 발자국은 제가 남길게요.”','“덕분에 아무도 길을 안 잃었어.”','“좋아. 이번엔 네가 행군 대장이다.”'],
+  ['여름의 눈사람','에이라의 냉동 상자 안에 작은 눈사람 다섯이 있다. “여름에도 겨울을 기억하고 싶어서요. 팀원들을 닮게 만들었어요.”','“코치 눈사람도 하나 만들어 줘.”','“잘 보관해 두고, 땀은 훈련장에서 흘리자.”'],
+  ['돌아갈 발자국','눈보라 속 경기. 에이라가 끝까지 남아 동료들의 퇴로를 연다. “길을 잃으면 제 발자국을 따라오세요. 꼭 돌아가요.”','“너도 같이 돌아오는 거야. 약속해.”','“퇴로까지 계산한 판단, 최고였다.”']],
+ raika:[['폭주한 앙코르','연습 중 라이카의 북에서 번개가 튀어 볼트의 머리카락이 곤두선다. “죄, 죄송해요! 신나면 박자가 빨라져서!”','“그 에너지, 경기장에서 터뜨려 줘.”','“메트로놈부터 다시. 박자가 곧 전술이야.”'],
+  ['빨개진 귀','응원 공연에서 박자를 한 번 놓쳤다. 무대 뒤 라이카의 귀가 새빨갛다. “아무도 몰랐겠죠…? 저는 알아요.”','“아무도 몰랐어. 알았어도 멋졌고.”','“실수 하나 뒤의 아홉 박자가 완벽했어.”'],
+  ['같은 박자의 심장','승부처에서 라이카가 북을 울리자 다섯 명의 공격이 정확히 맞물린다. “들렸죠? 우리 심장이 같은 박자로 뛰었어요!”','“앙코르는 우승 무대에서 하자.”','“그 박자, 결승까지 유지해.”']],
+ volt:[['설명서는 나중에','볼트의 새 석궁 옆에 빈 종이 한 장. “설명서? 쓰고 있어. 일단 쏴 보고.” 멀리서 테슬라가 한숨을 쉰다.','“같이 쓰자. 네 발명엔 설명이 필요해.”','“설명서 없는 장비는 실전 금지다.”'],
+  ['이름 붙은 실패작','공방 선반에 그을린 장치들이 줄지어 있다. “얘는 번개돌이 1호, 쟤는 겁쟁이 2호.” 볼트가 하나씩 쓰다듬는다. “다 이 녀석들 덕분에 지금 석궁이 있어.”','“실패에 이름을 붙여 주는 네가 멋져.”','“번개돌이 3호는 꼭 성공시키자.”'],
+  ['안전장치 확인','결승 전, 볼트가 팀원 모두의 장비를 점검한다. “안전장치 확인. 이번엔 아무도 다치면 안 되니까.” 마지막으로 코치를 본다. “발사해도 되죠?”','“네가 점검했으니 안심이야. 발사!”','“발사 허가. 영점은 승리에 맞춰.”']],
+ flora:[['이름 붙은 화분','온실 선반에 화분이 줄지어 있다. 이름표엔 아리아, 린, 루나… 맨 끝엔 코치. “이 아이는 물을 자주 줘야 해요. 코치님처럼 바쁘니까.”','“내 화분은 잘 자라고 있어?”','“내 화분이 시들지 않게, 나도 쉬어 가며 일할게.”'],
+  ['패배 뒤의 새싹','패배한 다음 날, 플로라가 가장 아쉬워한 학생의 화분에 새싹을 심는다. “꽃은 한 번만 피는 게 아니에요. 다음 계절이 있어요.”','“네 정원 덕분에 팀이 다시 일어서.”','“다음 계절엔 우리가 꽃을 피우자.”'],
+  ['사계절 정원','아카데미 뒤뜰에 작은 정원이 완성됐다. 벤치마다 팀원 이름이 새겨져 있다. “언제든 쉬어 가요. 이긴 날도, 진 날도.”','“우승하면 여기서 축하하자.”','“좋은 정원이야. 이제 경기장에서도 꽃을 피우자.”']],
+ rowan:[['늦깎이 입학생','출석을 부르자 로완이 천천히 손을 든다. 어린 학생들이 웃음을 참는다. “웃어도 되네. 나도 내가 신기하니까.”','“배우는 데 늦은 나이는 없어요.”','“경험은 무기예요. 내일 전열 지휘를 맡아 줘요.”'],
+  ['작은 새의 수업','시험 전날, 로완이 창가의 참새에게 전술 이론을 설명하고 있다. “…그래서 탱커가 먼저 맞는 거지. 알겠나?” 참새가 짹 하고 운다.','“좋은 선생님이네요. 저도 들어도 될까요?”','“참새는 합격이네요. 이제 실전 시험이에요.”'],
+  ['깊은 뿌리','위기의 순간, 로완이 가장 먼저 앞으로 나선다. “서두르지 말게. 뿌리가 깊으면 버틸 수 있지.” 미카와 플로라가 그의 등 뒤에서 숨을 고른다.','“당신이 우리 팀의 그늘이에요.”','“그 뿌리로 결승까지 버텨 줘요.”']],
+ soleine:[['정답이 하나가 아닌 이유','솔레인이 전술판에 일곱 갈래 화살표를 그린다. “검술원에선 정답이 하나였어요. 여기선 일곱 개도 될 수 있죠?”','“네 일곱 갈래가 우리 팀을 넓혀 줄 거야.”','“좋아. 그중 이길 길을 네가 골라.”'],
+  ['실패한 수채화','검술 노트 사이로 번진 수채화가 떨어진다. 하늘을 그리려다 진흙색이 된 그림. “빛은 다룰 줄 아는데, 색은 아직이에요.”','“이 하늘, 난 마음에 들어.”','“검도 그림도 반복이야. 내일 또 그려 봐.”'],
+  ['가장 선명한 빛','결승 전, 솔레인이 검을 들어 햇빛을 일곱 갈래로 나눈다. 팀원마다 다른 색이 내려앉는다. “모두의 색이 지워지지 않는 승리, 지금 보여 드릴게요.”','“네 빛 덕분에 모두가 선명해.”','“그 빛으로 상대 진형을 갈라.”']],
+ ortea:[['조약돌 보관함','오르테아의 서랍에 날짜가 적힌 조약돌이 가득하다. “이건 입학 첫날, 이건 첫 승리한 날. 돌은 기억을 오래 간직해요.”','“오늘 날짜도 하나 넣어 둘까?”','“다음 돌엔 우승이라고 쓰자.”'],
+  ['지맥의 악보','오르테아가 경기장 바닥에 귀를 댄다. “들려요? 이 아래 지맥이 낮은 음으로 울려요. 여기서 싸우면 발판이 버텨 줄 거예요.”','“네 덕분에 전장이 악보처럼 읽혀.”','“그 음을 우리 진형의 기준으로 삼자.”'],
+  ['무너지지 않는 길','고향 광산이 다시 무너졌다는 소식. 오르테아가 지도 위에 손을 얹는다. “이번엔 혼자 잇지 않을래요. 팀이 버텨 주는 법을 배웠으니까.”','“고향 길, 우리가 같이 이어 줄게.”','“이번 시즌 상금으로 복구를 돕자.”']],
+ lucel:[['첫 종소리','해 뜨기 전 첫 종이 울린다. 종탑 계단을 내려온 루셀의 다리가 후들거린다. “괜, 괜찮아요. 매일 하는 일이에요.”','“매일 무서움을 이기는 네가 대단해.”','“그 다리 힘, 하체 훈련으로 바꿔 보자.”'],
+  ['계단 세기','“오늘은 계단을 세지 않고 올라갔어요!” 루셀이 뿌듯하게 말하다 멈칫한다. “백십이 칸이었는데… 아, 결국 셌네요.”','“그래도 끝까지 올라갔잖아.”','“다음엔 숫자 대신 목표를 세.”'],
+  ['한 발의 신호','혼전 속, 루셀의 화살 하나가 하늘 높이 빛을 터뜨린다. 흩어졌던 팀원들이 그 빛을 보고 모인다. “첫 신호는 제가 보낸다고 했잖아요.”','“네 신호 덕분에 모두 돌아왔어.”','“그 신호를 공격 개시 신호로 쓰자.”']],
+ bellin:[['금실 단추','코치 제복의 단추가 어느새 금실로 꿰매져 있다. 벨린이 시치미를 뗀다. “행운의 매듭이에요. 절대 안 풀려요.”','“덕분에 오늘 하루가 든든하네.”','“선수들 유니폼에도 하나씩 달아 줘.”'],
+  ['흠집의 이야기','찢어진 갑옷을 꿰매던 벨린이 중얼거린다. “이 흠집은 이그니스가 테오를 감쌀 때 생긴 거예요. 흠집마다 돌아온 이야기가 있어요.”','“그 이야기를 지켜 주는 게 너구나.”','“다음엔 흠집 없이 돌아오게 전술을 짤게.”'],
+  ['풀리지 않는 매듭','결승 전, 벨린이 팀원들 손목에 금실을 하나씩 묶는다. “걱정 마요. 이 매듭은 안 풀려요. 다 같이 돌아올 테니까.”','“내 손목에도 하나 묶어 줘.”','“이 매듭처럼 우리 진형도 안 풀린다.”']],
+ saffra:[['용기의 향','훈련장에 사프란 향이 퍼지자 긴장하던 신입들의 어깨가 내려간다. 사프라가 향로를 흔든다. “두려움엔 따뜻한 향이 최고야.”','“나도 덕분에 긴장이 풀렸어.”','“좋아. 경기 전 루틴에 넣자.”'],
+  ['꿀 두 배','사프라가 내민 사프란 차가 엄청 달다. “…맵찔이라 꿀을 두 배 넣었어. 린한테는 비밀이야.”','“이 달콤함이 네 매력이야.”','“비밀은 지킬게. 대신 불꽃은 맵게.”'],
+  ['매콤한 승리의 향','결승 직전, 사프라가 새 향을 피운다. 매콤하고 따뜻한 냄새. “오늘을 위해 만든 향이야. 이름은… 우승.”','“그 향, 우승 축하 때도 피워 줘.”','“향만큼 불꽃도 뜨겁게 가자.”']],
+ cindra:[['커튼콜 연습','신드라가 리본을 휘두르며 무대 인사를 연습한다. “관객이 나를 보는 순간, 동료가 움직이는 거야. 그게 내 역할.”','“너의 무대가 팀의 길을 여는구나.”','“시선을 끄는 타이밍, 3초만 당겨 보자.”'],
+  ['행운의 매듭','공연 전, 신드라가 린에게 손목을 내민다. 린이 투덜대며 매듭을 묶어 준다. 신드라가 코치에게 속삭인다. “이거 없으면 불안해. 린한텐 말하지 마.”','“둘이 좋은 콤비네.”','“매듭 없이도 해낼 수 있게 네 실력을 믿어 봐.”'],
+  ['함께 받는 박수','경기가 끝나자 관중석이 박수로 가득 찬다. 신드라는 혼자 인사하지 않고 팀원들을 무대 앞으로 끌어낸다. “다 같이 받는 박수가 제일 커.”','“최고의 커튼콜이었어.”','“다음 무대는 결승이다.”']],
+ coralie:[['구명부표의 이름','코랄리의 구명부표에 팀원 이름이 빼곡하다. 맨 아래 새 이름이 막 적혔다. “코치님도 넣었어요. 구조 대상 1순위로.”','“영광이네. 나도 네 이름을 기억할게.”','“고맙지만, 내가 빠질 일은 없게 할게.”'],
+  ['조개 호루라기','코랄리가 조개껍데기 호루라기를 분다. 맑은 소리. “네리스가 준 거예요. 이 소리가 들리면 누구든 내 손을 잡으면 돼요.”','“그 소리면 다들 안심하겠다.”','“경기 중 후퇴 신호로 써 보자.”'],
+  ['마지막으로 나오는 사람','혼전이 끝나고 모두 무사히 돌아왔다. 가장 늦게 걸어 나온 코랄리가 숨을 고른다. “다 돌아왔죠? 그럼 됐어요.”','“너도 무사해서 다행이야.”','“다음엔 너도 같이 나와. 그게 명령이다.”']],
+ ondine:[['부두의 밧줄','폭풍 경보가 울리자 온딘이 습관처럼 밧줄을 고쳐 묶는다. “항구에선 배부터 묶었어요. 여기선… 동료를 묶어야겠네요. 진형으로요.”','“네가 있으면 진형이 흔들리지 않아.”','“전열 고정은 네게 맡긴다.”'],
+  ['방패 뒤의 이름','온딘의 방패 안쪽에 낡은 글씨가 새겨져 있다. 바다제비호. “핀이 어릴 때 타던 배예요. 부서지던 날, 제가 못 지켰거든요.”','“이제 그 이름이 너를 지켜 주는구나.”','“이번엔 지킬 수 있어. 내가 보장하지.”'],
+  ['돌아올 항구','경기가 끝나자 온딘이 방패를 내려놓고 모두를 맞는다. “어서 와요. 여기가 항구예요.” 핀이 웃으며 방패를 두드린다.','“우리 팀의 항구가 되어 줘서 고마워.”','“그 항구, 결승까지 지켜.”']],
+ lark:[['강의 노트 비행기','복도 가득 종이비행기가 날아다닌다. 날개에는 미적분 공식이 적혀 있다. “버려진 노트가 제일 잘 날아! 이건 바람길 측정이야.”','“그 비행기가 바람을 보여 주는구나.”','“좋아. 단, 시험 노트는 버리지 마.”'],
+  ['접을 뻔한 편지','라크가 새하얗게 질려 있다. 손에는 제피르의 봉투. “이걸 비행기로 접을 뻔했어…! 그 뒤로 종이는 꼭 확인해.”','“다행이다. 제피르에겐 비밀로 해 줄게.”','“실수는 확인하는 습관으로 이기는 거야.”'],
+  ['지도 밖의 길','라크의 종이비행기가 경기장 구석 사각지대로 미끄러진다. “봐! 아무 지도에도 없는 길이야.” 팀이 그 길로 돌파한다.','“네가 우리 지도를 넓혔어.”','“그 길, 다음 경기 기본 전술로 쓰자.”']],
+ vespa:[['초록 깃발','행군 훈련, 베스파가 대열 맨 뒤에서 깃발을 흔든다. “앞이 아니라 뒤에 서는 이유? 늦는 사람이 길을 잃지 않게.”','“그 마음이 이 팀의 깃발이야.”','“후열 집결 신호는 네 깃발로 하자.”'],
+  ['깃털 장식','깃대 끝에 초록 깃털이 흔들린다. “실비가 준 거예요. 바람이 어디서 부는지 알려 준대요.”','“둘이 같은 바람을 보는구나.”','“그 깃털로 풍향 읽는 법을 같이 연습하자.”'],
+  ['아무도 남기지 않는 행진','승리 후 귀환. 베스파가 마지막 학생이 들어올 때까지 문 앞에서 깃발을 든다. “한 명도 뒤처지지 않았어. 이게 진짜 승리지.”','“네 깃발 아래라면 어디든 갈 수 있어.”','“다음 행진은 우승 퍼레이드다.”']],
+ petra:[['금이 간 찻잔','페트라가 깨진 찻잔의 금을 금빛으로 메운다. 금빛 선이 번개처럼 흐른다. “금이 가도 더 예뻐질 수 있어요. 사람도 그래요.”','“그 말, 오늘 진 친구들한테 전해 줘.”','“팀의 금 간 곳도 함께 메우자.”'],
+  ['가이아의 첫 화분','공방 선반 한가운데 찌그러진 화분이 놓여 있다. “가이아의 첫 실패작이에요. 제일 아끼는 거예요. 노력한 흔적이 다 남아 있거든요.”','“실패를 아끼는 네가 좋은 선생님이야.”','“다음 실패작은 내 걸로 하나 만들어 볼까.”'],
+  ['쉬어 가는 공방','패배한 밤, 공방에 팀원들이 하나둘 모인다. 페트라가 따뜻한 흙잔을 나눠 준다. “여기선 아무 말 안 해도 돼요. 그냥 쉬어요.”','“이 공방이 우리 팀의 쉼터야.”','“충분히 쉬었으면, 내일 다시 일어서자.”']],
+ mica:[['빈 공간의 울림','미샤가 벽을 두드리며 귀를 기울인다. 통, 통, 텅. “여기 비었어요.” 그녀가 전술판을 가리킨다. “상대 진형도 똑같아요. 빈 곳이 들려요.”','“그 귀로 상대의 틈을 찾아 줘.”','“그 틈을 첫 화살로 노리자.”'],
+  ['행운의 황수정','테오가 노란 돌을 자랑한다. “미샤가 그냥 돌이래요!” 미샤가 시선을 피한다. “…그냥 돌 맞아요. 아마도.”','“그 그냥 돌, 테오에겐 큰 응원이겠다.”','“비밀은 지켜 줄게. 너도 하나 챙겨.”'],
+  ['다치지 않는 지도','미샤가 완성한 경기장 지도에 빨간 표시가 가득하다. “위험한 곳을 다 표시했어요. 아무도 다치지 않게.”','“이 지도 덕분에 모두 무사할 거야.”','“이 지도로 공격 경로까지 짜 보자.”']],
+ velvet:[['잠 못 드는 밤의 책','새벽 두 시, 도서실에 촛불이 켜져 있다. 벨벳이 악몽을 꾼 신입에게 이야기책을 건넨다. “이 장은 조금 쉬어 가도 괜찮아요.”','“너도 쉬어. 촛불은 내가 지킬게.”','“내일 훈련은 오후로 미루자.”'],
+  ['면제된 연체료','대출 기록에 카엘의 요리책 반납 지연 47일. 연체료 칸은 비어 있다. 벨벳이 손가락을 입에 댄다. “…열심히 읽는 중이래요.”','“다정한 사서구나. 비밀 지킬게.”','“카엘한텐 요리로 갚으라고 해.”'],
+  ['남겨 둔 불빛','패배한 밤, 도서실 창가마다 촛불이 켜져 있다. 벨벳의 쪽지가 놓여 있다. “어떤 밤에도 읽을 불빛은 남아 있어요.”','“그 불빛 덕분에 다들 다시 일어날 거야.”','“다음 밤엔 승리 이야기를 읽자.”']],
+ ravenna:[['강철 우산','비 오는 귀갓길, 라벤나가 학생 셋을 강철 우산 아래 모은다. “무서운 이야기 해 줄까요? 결말은 다 웃기니까 걱정 마요.”','“네 우산 아래면 밤길도 즐겁겠다.”','“그 우산, 경기장에서도 방패가 되어 줘.”'],
+  ['작은 우산 하나','라벤나의 가방에서 작은 우산이 하나 더 나온다. “닉스 거예요. 베일이 젖으면 기분이 안 좋아지거든요.”','“닉스가 알면 고마워하겠다.”','“닉스 옆자리는 네가 맡아.”'],
+  ['혼자 걷지 않는 밤','원정 경기 후 늦은 귀환. 라벤나가 마지막 학생을 기숙사 앞까지 데려다준다. “혼자 걷는 밤길은 없어요. 제가 있는 동안은.”','“너도 혼자 걷지 마. 내가 같이 갈게.”','“이 팀의 밤은 네가 지킨다.”']],
+ neve:[['맞춤 소르베','경기 후 네베가 팀원마다 다른 소르베를 건넨다. 린에겐 매콤한 맛, 루나에겐 별사탕 맛. “취향은 다 메모해 뒀어요!”','“내 건 무슨 맛이야?”','“회복 루틴에 정식으로 넣자.”'],
+  ['소금 한 꼬집','왕실 레시피 소르베를 맛본 세라핀이 고개를 갸웃한다. “…예전보다 맛있어.” 네베가 몰래 윙크한다. “소금 한 꼬집이 비결이에요.”','“그 비밀, 나만 알고 있을게.”','“전술에도 소금 한 꼬집이 필요하지.”'],
+  ['패배한 날의 디저트','크게 진 날, 네베가 커다란 케이크를 들고 온다. 위에는 “다음엔 이긴다!” “진 날에도 웃을 수 있게, 제일 달게 만들었어요.”','“덕분에 다들 웃었어. 고마워.”','“이 케이크 값, 다음 경기에서 갚자.”']],
+ siv:[['낮은 중심','빙판 훈련장. 시브가 미끄러지면서도 표적 정중앙을 맞힌다. “급할수록 중심을 낮춰. 그럼 흔들리지 않아.”','“그 말, 나도 전술 짤 때 기억할게.”','“좋아. 모두 빙판 사격 한 세트씩.”'],
+  ['손난로 충전','시브가 글레이시아의 손난로를 몰래 충전해 망토 주머니에 넣는다. “당주님은 모르는 척하시는 거예요. 저도 모르는 척하고요.”','“서로 모르는 척하는 우정이네.”','“대신 너도 장갑 꼭 챙겨.”'],
+  ['겨울 밖의 사수','한여름 원정 경기, 뙤약볕 아래 시브가 활을 당긴다. “겨울 경기장 밖에서도 빛나 보일게요.” 화살이 정확히 꽂힌다.','“어디서든 넌 빛나는 사수야.”','“여름도 정복했으니, 이제 우승이다.”']],
+ tesla:[['안전 점검표','테슬라의 점검표가 벽 한 면을 채운다. 맨 위 빨간 글씨: 볼트 접근 주의. “농담 아니에요. 어제도 하나 터졌어요.”','“네 덕분에 실험실이 안전해.”','“경기 장비 점검도 네게 맡길게.”'],
+  ['설명서의 경고 그림','볼트의 설명서를 펼치자 귀여운 번개 그림이 그려져 있다. 여기 만지면 안 됨! 테슬라가 헛기침한다. “…그림이 더 잘 읽히니까요.”','“최고의 설명서야.”','“다른 장비 설명서에도 그려 줘.”'],
+  ['마음껏 뛰어요','결승 전, 마지막 점검을 끝낸 테슬라가 방패를 든다. “점검 끝. 이제 마음껏 뛰어요. 튀는 번개는 제가 다 받을게요.”','“네가 뒤에 있으니 마음껏 뛸게.”','“전열은 네 거다. 한 발도 밀리지 마.”']],
+ nemi:[['응원 방송','경기장 스피커에서 네미의 목소리가 울린다. “잘 들려? 아직 끝난 거 아니야!” 지친 팀원들의 발걸음이 빨라진다.','“네 목소리가 최고의 회복약이야.”','“작전 신호도 방송으로 넣자.”'],
+  ['방송 사고 직전','네미가 새파랗게 질려 마이크를 끈다. “방금… 유즈가 간식 숨긴 곳 말할 뻔했어. 들었어?”','“아무것도 못 들었어. 진짜로.”','“다음 방송 전엔 원고부터 체크하자.”'],
+  ['가장 작은 신호','시끄러운 혼전 속에서 네미가 아주 작은 목소리를 잡아낸다. “3번이 지쳤어! 지금 교체!” 덕분에 팀이 위기를 넘긴다.','“네 귀가 우리 팀을 살렸어.”','“그 판단력, 결승에서도 믿을게.”']],
+ briar:[['가시의 약속','브라이어가 울타리 가지를 다듬으며 검을 휘두른다. “가시는 다가오지 말라는 게 아니야. 안쪽의 어린 싹을 지키겠다는 약속이지.”','“그 약속, 우리 팀에도 해 줘.”','“후열 보호는 네 가시로 하자.”'],
+  ['산딸기 길','온실 뒤편 울타리 한쪽에 산딸기가 길게 열려 있다. 브라이어가 손가락을 입에 댄다. “로완한텐 비밀. 경비대 출신이라 질서에 엄하거든.”','“산딸기 하나만 나눠 줘.”','“비밀 지킬게. 대신 내일은 산딸기 파이.”'],
+  ['꽃을 지키는 검','경기 중 브라이어의 검이 꽃잎 하나 다치지 않게 적만 베어 낸다. 플로라가 박수를 친다. “봐요, 꽃을 다치게 하지 않는 검술!”','“네 검이 제일 다정한 검이야.”','“그 정확함, 결승에서도 보여 줘.”']],
+ clover:[['벌들의 길','클로버가 꿀벌의 비행을 따라 지도에 선을 긋는다. “벌들이 피하는 길엔 꼭 뭔가 있어. 오늘은 상대 매복이야!”','“벌들도 우리 팀이네.”','“그 정찰로 첫 사선을 잡자.”'],
+  ['꿀 고르기','클로버가 꿀단지 열두 개를 늘어놓고 하나씩 맛을 본다. “미카 물약에 들어갈 꿀이야. 폭발 안 하는 꿀을 찾는 중!”','“덕분에 보건실 폭발이 줄었구나.”','“폭발 안 하는 꿀, 꼭 찾아내.”'],
+  ['꿀 같은 평화','승리 후, 클로버가 숲과 아카데미 사람들에게 꿀을 나눠 준다. “따끔한 화살 뒤엔 달콤한 응원! 이게 내 방식이야.”','“네 방식이 팀을 달콤하게 만들어.”','“다음 꿀은 우승 꿀로 하자.”']]
+};
+// 영웅끼리의 관계 한 줄 — 친구마다 다르게
+const EXPANSION_RELATIONS={
+ ignis:{theo:'같은 방패를 쓰는 후배. 그의 방패는 늘 이그니스가 밤새 고쳐 준다',rin:'불꽃끼리 통하는 사이. 린의 검 담금질을 맡고 있다'},
+ maren:{finn:'바다 바람파 동지. 핀에게 몰래 수영을 배우는 중',nerise:'해류 이야기로 밤을 새우는 바다 친구'},
+ nerise:{maren:'조수표를 같이 읽는 언니 같은 선배',noel:'바다 노래에 화음을 얹어 주는 사람'},
+ zephyr:{sylvie:'지붕 위에서 자주 마주치는 정찰 파트너',aerin:'하늘을 그리워하는 동료. 매일 깃털 소식을 배달해 준다'},
+ aerin:{sylvie:'활시위를 함께 고르는 궁술부 동료',zephyr:'바람 소식을 물어다 주는 수다쟁이 우편부'},
+ gaia:{aria:'전열을 함께 받치는 든든한 기둥',theo:'넘어지면 어깨를 빌려주는 성실한 후배'},
+ glacia:{seraph:'북녘 예법을 아는 몇 안 되는 동료',eira:'눈길을 함께 걷는 믿음직한 교관'},
+ eira:{seraph:'눈꽃 창끝을 다듬어 주는 얼음 마법 선배',glacia:'방패 뒤를 맡겨도 되는 당주님'},
+ raika:{yuzu:'박자 맞추기 놀이의 단짝. 번개처럼 빠른 리듬 담당',volt:'곤두선 머리카락의 피해자이자 공연 조명 담당'},
+ volt:{yuzu:'번개 석궁의 첫 시험 사격수',raika:'공연 무대 장치를 같이 만드는 공범'},
+ flora:{mika:'온실 약초를 나눠 쓰는 보건실 이웃',rowan:'정원 그늘을 지켜 주는 듬직한 어른'},
+ rowan:{mika:'물약이 터질 때마다 대피시켜 주는 꼬마 친구',flora:'숲을 아는 사람끼리 말없이 통하는 동료'},
+ soleine:{aria:'빛의 검과 빛의 방패. 서로의 정의를 존중하는 사이',noel:'같은 빛이지만 전혀 다른 따뜻함을 배우는 상대'},
+ ortea:{gaia:'지맥의 울림을 함께 듣는 고향 선배',theo:'튼튼한 발판이 필요한 성실한 후배'},
+ lucel:{noel:'새벽 종과 아침 기도를 함께 여는 사이',aria:'종탑에서 내려다보면 늘 가장 먼저 보이는 기사'},
+ bellin:{noel:'다친 사람을 함께 돌보는 보건실 콤비',soleine:'빛나는 제복을 맡기는 단골손님'},
+ saffra:{rin:'매운 걸 좋아해서 차를 따로 타 주는 친구',ignis:'공방 불씨를 함께 지키는 불의 선배'},
+ cindra:{rin:'공연 전 행운의 매듭을 묶어 주는 친구',rose:'무대 위 우아함을 겨루는 라이벌'},
+ coralie:{maren:'항로를 정하면 구조 지점을 함께 표시하는 짝',nerise:'조개 호루라기를 선물해 준 바다 친구'},
+ ondine:{finn:'지키지 못한 배의 주인. 이번엔 꼭 지키고 싶은 사람',maren:'항구와 항로처럼 서로를 기다리는 사이'},
+ lark:{zephyr:'접을 뻔했던 편지의 주인. 미안해서 오히려 친해졌다',aerin:'종이비행기를 바람에 태워 주는 하늘 선배'},
+ vespa:{sylvie:'풍향 깃털을 선물해 준 숲의 궁수',zephyr:'행진할 때마다 앞질러 가는 말썽꾸러기'},
+ petra:{gaia:'첫 실패작 화분의 주인. 함께 흙을 빚는 친구',ortea:'좋은 흙을 찾아 주는 고향 연구원'},
+ mica:{theo:'행운의 황수정을 몰래 건넨 성실한 친구',ortea:'광맥 지도를 함께 그리는 선배'},
+ velvet:{luna:'밤의 도서실을 함께 지키는 별빛 동료',kael:'요리책 연체료를 봐주는 단골 대출자'},
+ ravenna:{nyx:'베일이 젖지 않게 우산을 챙겨 주는 밤의 친구',kael:'야간 순찰 경로를 나눠 맡는 과묵한 동료'},
+ neve:{seraph:'왕실 레시피를 몰래 고쳐 주는 공주님 친구',eira:'눈사람 보관을 도와주는 디저트 단골'},
+ siv:{glacia:'손난로를 몰래 충전해 드리는 당주님',eira:'빙판 위 중심 잡기를 함께 연습하는 교관'},
+ tesla:{volt:'설명서에 경고 그림을 그려 줘야 하는 발명가',raika:'무대 장치 감전 사고를 막아 주는 공연 파트너'},
+ nemi:{raika:'방송과 무대를 함께 꾸미는 음악원 동료',yuzu:'간식 숨긴 곳을 알지만 말 못 하는 친구'},
+ briar:{flora:'울타리 안쪽을 지켜 주고 싶은 정원사',rowan:'질서에 엄하지만 산딸기 길은 눈감아 주는 경비대 선배'},
+ clover:{mika:'물약에 들어갈 꿀을 골라 주는 보건실 단골',flora:'꽃꿀을 나눠 받는 온실 이웃'},
+ torres:{ronaldo:'7번과 9번. 말 안 해도 침투 타이밍이 맞는 옛 동료',rin:'전력 질주 경쟁 상대. 린이 이기면 떡꼬치를 사 준다'}
+};
 const EXPANSION_LORE=Object.fromEntries(EXPANSION_HEROES.map(c=>[c.id,{
  hometown:c.home,likes:c.likes||c.motif,dislikes:c.dislikes||'동료를 포기하는 일, 약속을 어기는 일',dream:c.dream,secret:c.secret,speech:c.quote,
- story:c.bio+' '+c.dream+' 위해 코치와 함께 자신의 전술을 다듬고 있다.',relations:c.friends.map(id=>[id,'같은 전공 훈련에서 서로를 믿고 의지하는 동료']),
+ story:c.bio+' '+c.dream+' 위해 코치와 함께 자신의 전술을 다듬고 있다.',relations:c.friends.map(id=>[id,EXPANSION_RELATIONS[c.id]?.[id]||'같은 전공 훈련에서 서로를 믿고 의지하는 동료']),
  lines:{greet:[c.quote],talk:[c.secret,c.dream+'… 그게 제 목표예요.'],train:[c.skill+'의 흐름을 다시 맞춰 볼게요.'],win:[c.quote,'오늘의 승리, '+c.home+'에도 전하고 싶어요.'],lose:['다음에는 '+c.skill+'의 타이밍을 놓치지 않을게요.'],mvp:['코치가 제 '+c.passive+'을 믿어 준 덕분이에요.'],skill:[c.skill+'!'],tired:['오늘은 '+c.home+'의 풍경이 생각나네요. 조금 쉬고 싶어요.'],happy:[c.quote+' 오늘은 더 잘할 수 있을 것 같아요.']}
 }]));
 
@@ -452,12 +587,35 @@ const intakeTalk={
  briar:['가시는 안쪽의 꽃을 지키려고 자라는 거야. 나도 그렇게 싸우고 싶어.','산딸기 익었어. 코치 거는 가시 없는 쪽에서 따 뒀지.'],
  clover:['벌 한 마리는 작아도 돌아오는 길을 절대 잊지 않아.','행운의 네 잎을 찾았어! 반으로 나누면 안 되니까 같이 갖자.']
 };
-for(const c of INTAKE_HEROES){const L=EXPANSION_LORE[c.id].lines,[a,b]=intakeTalk[c.id];Object.assign(L,{
- greet:[c.quote,a],talk:[c.secret,c.bio,c.dream+'… 그게 제 목표예요.',a,b],
- train:[c.skill+'! 한 번 더 정확하게.','코치, 방금 동작은 어땠어요? 다음에는 빈틈을 줄일게요.'],
- win:[c.quote,c.home+'에도 이 소식을 전해야겠어요!'],lose:['오늘 기록은 남겨 둘게요. 같은 실수는 반복하지 않게.','아직 끝이 아니에요. '+c.dream+'까지, 다시 해 볼게요.'],
- mvp:['제 '+c.passive+'을 믿어 준 덕분이에요.','코치, 오늘은 조금 자랑해도 되죠?'],skill:[c.skill+'!',c.quote],
- tired:[c.home+'의 풍경이 생각나네요. 잠깐 쉬어도 될까요?','장비부터 챙길게요. 돌아가는 길은 함께 걸어요.'],happy:[b,c.dream+'에 한 걸음 더 가까워진 기분이에요.']
+// 신규 영웅 상황별 대사(대화·훈련·승리·패배·MVP 2·피곤 2·기쁨) — 영웅마다 직접 쓴 대사
+const INTAKE_LINES={
+ soleine:['빛은 혼자 있을 땐 하얗지만, 함께 있으면 무지개가 돼요.','검 끝의 각도를 1도만 더. 빛은 정직하니까요.','일곱 색 모두 빛났어요. 오늘은 완벽한 스펙트럼이네요.','빛이 흐린 날도 있죠. 렌즈를 닦고 다시 갈게요.','제 빛이 가장 선명했다니… 코치님 전술 덕분이에요.','오늘 수채화는 조금 성공할 것 같아요.','눈이 부셔요… 커튼 좀 쳐 주시겠어요?','오늘은 검 대신 붓을 들고 쉬고 싶어요.','세상이 일곱 색으로 반짝여 보여요!'],
+ ortea:['지층은 한 장씩 쌓여요. 우리 팀도 그렇게 단단해질 거예요.','발밑 진동 다시 측정할게요. 0.3초 빨라졌어요.','오늘 날짜, 조약돌에 새겨 둘게요.','균열은 보였어요. 다음엔 그 틈부터 메울게요.','대지가 제 편을 들어 줬네요. 고마워요, 코치님.','오늘 주운 조약돌은 금색 펜으로 적을게요.','광석처럼 잠깐 묻혀 있고 싶어요…','지맥 소리가 자장가처럼 들려요. 조금만 잘게요.','발밑의 별들이 다 웃는 것 같아요!'],
+ lucel:['종소리는 멀리 갈수록 작아지지만, 꼭 닿아요.','조준은 됐어요. 계단만 아니면 다 할 수 있어요!','오늘은 승리의 종을 두 번 칠게요!','신호가 늦었어요. 내일은 해보다 먼저 일어날게요.','제, 제가요? 종탑에서 소리 지르고 싶어요!','오늘 계단은 하나도 안 무서울 것 같아요.','종탑 계단… 오늘은 승강기가 있었으면.','새벽 종을 치려면 일찍 자야 해요. 먼저 쉴게요.','하늘까지 울리는 기분이에요!'],
+ bellin:['실은 끊어져도 다시 이을 수 있어요. 사람 사이도요.','바늘땀처럼 촘촘하게, 한 번 더요.','오늘 승리는 금실로 수놓아 둘게요.','찢어진 곳은 제가 다 기울게요. 걱정 마요.','어머, 제가요? 오늘 단추가 행운이었나 봐요.','축하 리본은 제가 직접 만들어 드릴게요.','손끝이 저려요… 실이 안 꿰어져요.','오늘은 바느질 대신 차 한 잔 할래요.','세상이 레이스처럼 예뻐 보여요!'],
+ saffra:['향은 기억을 깨워. 오늘 향은 우리가 이긴 날을 기억할 거야.','불꽃 온도 조절 다시! 너무 매우면 안 되거든.','승리의 향, 오늘은 달콤하게 바꿔 볼까?','오늘 향은 너무 썼어. 레시피부터 다시 볼게.','헤헤, 오늘 내 불꽃 냄새 좋았지?','축하 차는 꿀 세 배야. 비밀이야!','향로 연기에 눈이 매워… 잠깐 쉴래.','라벤더 향 피워 놓고 낮잠 자고 싶어.','오늘은 세상이 사프란 색이야!'],
+ cindra:['무대 위에선 실수도 연출이 돼. 경기장도 마찬가지야.','리본 회전 한 바퀴 더! 관객은 박수를 기다려.','커튼콜! 다 같이 인사하자!','박수가 안 나온 무대는 다시 올리면 돼.','스포트라이트가 나한테? 그럼 한 바퀴 돌아야지!','린, 오늘 매듭 효과 최고였어!','분장 지울 힘도 없어… 그냥 잘래.','오늘 공연은 여기까지. 앙코르는 내일!','오늘 무대는 불꽃놀이 같았어!'],
+ coralie:['구조는 빠른 것보다, 끝까지 보는 게 중요해요.','호흡 다시! 숨이 길어야 끝까지 구할 수 있어요.','다 같이 돌아왔어요. 오늘 구조 기록, 완벽해요!','놓친 사람은 없죠? 그럼 다시 일어날 수 있어요.','제가요? 다들 무사해서 그런 거예요.','오늘은 호루라기 대신 박수 칠게요!','물 밖에 나온 조개처럼 늘어지고 싶어요…','구명부표 베고 잠깐 누울게요.','파도가 노래하는 날이에요!'],
+ ondine:['파도는 막는 게 아니라 흘려보내는 거예요.','방패 각도 15도. 이러면 힘이 옆으로 흘러요.','항구는 무사해요. 다들 어서 들어와요.','방파제에 금이 갔네요. 오늘 밤 보수할게요.','제가 지킨 게 보였나요? 다행이에요.','오늘은 핀한테 배 그림 하나 그려 달라고 해야지.','닻을 내리고 쉬고 싶어요…','폭풍이 지나갔으니 잠깐 눈 좀 붙일게요.','바다가 잔잔해서 기분이 좋아요!'],
+ lark:['바람은 안 보이지만, 종이비행기는 거짓말을 안 해!','날개 각도 다시 접어 볼게. 이번엔 더 멀리!','승리 소식, 종이비행기로 날려 보낼게!','추락한 비행기도 다시 접으면 날아.','내가 MVP? 기념 비행기 백 개 접을래!','이 성적표는 절대 안 접어. 액자에 넣을 거야.','종이처럼 납작해졌어… 펴 줄 사람?','바람이 멈췄어. 나도 잠깐 착륙할게.','오늘은 바람이 전부 내 편이야!'],
+ vespa:['깃발이 보이면 길을 잃은 게 아니야.','대열 정비! 깃발 따라 한 바퀴 더!','깃발을 높이! 오늘은 우리가 이겼다!','깃발은 아직 서 있어. 다시 모이자.','깃발수가 MVP라니, 행진곡 하나 틀어 줘!','오늘은 깃발을 반쯤 접어 두고 쉬어도 되겠지?','깃대가 오늘따라 무거워…','행진은 여기서 잠깐 멈춤. 다들 쉬어.','바람에 깃발이 춤춰! 기분 최고야!'],
+ petra:['흙은 눌러야 단단해져요. 우리도 힘든 날이 있어야 해요.','물레 돌리듯 천천히, 다시 한 번요.','오늘은 승리 기념 찻잔을 구울게요.','깨졌으면 금으로 이으면 돼요. 더 예뻐질 거예요.','제 흙잔이 도움이 됐나 봐요. 기뻐요.','오늘 가마에 넣을 잔엔 코치님 이름을 새길게요.','손에 흙이 묻은 채로 잠들 것 같아요…','가마가 식을 때까지만 쉴게요.','세상이 갓 구운 찻잔처럼 따뜻해요!'],
+ mica:['텅 빈 소리가 나는 곳엔 꼭 뭔가 있어요.','탐침 다시 꽂아 볼게요. 아직 빈틈이 들려요.','광맥 발견! 아니, 승리 발견!','이번엔 빈 곳을 잘못 들었어요. 귀를 더 기울일게요.','제가요? 황수정 하나 더 찾은 기분이에요!','오늘 탐사 일지엔 별표 다섯 개예요.','갱도에서 하루 종일 있었던 기분이에요…','헬멧 벗고 잠깐 누울게요.','반짝이는 걸 잔뜩 찾은 날이에요!'],
+ velvet:['책갈피는 멈춘 곳을 기억해 줘요. 다시 시작할 수 있게.','조용히, 한 장씩. 다시 해 볼게요.','오늘 이야기는 해피엔딩이네요.','이 장은 슬프지만, 책은 아직 안 끝났어요.','제 이름이 불리다니… 촛불이 흔들리네요.','오늘 밤엔 승리 이야기를 골라 읽어 드릴게요.','눈꺼풀이 책장처럼 무거워요…','책갈피 꽂아 두고, 잠깐 쉴게요.','오늘은 모든 페이지가 따뜻해요.'],
+ ravenna:['비는 그치기 마련이에요. 그때까지 우산을 들어 줄게요.','우산 펴는 속도, 한 번 더 확인할게요.','오늘은 우산 접고 걸어도 되겠네요.','비가 많이 왔네요. 다들 제 우산 안으로 와요.','제가요? 까마귀들이 질투하겠어요.','오늘 귀갓길 무서운 이야기는 해피엔딩으로 할게요.','밤 순찰이 길었어요… 조금만 눈 붙일게요.','우산 그늘에서 잠깐 쉬어도 될까요?','오늘은 하늘이 맑아서 우산이 심심하겠어요!'],
+ neve:['차가운 디저트는 마음을 진정시켜 줘요. 과학이에요!','머랭 치듯 한 번 더! 손목이 중요해요.','승리 소르베 나갑니다! 오늘은 딸기 맛!','오늘은 쓴 초콜릿 맛이네요. 내일은 달게 만들어요.','제가요? 오늘 디저트는 제가 쏠게요!','세라핀한테 자랑해야지. 소금 얘기는 빼고요.','냉동고 안에 들어가서 쉬고 싶어요…','반죽처럼 늘어졌어요. 잠깐 휴식!','오늘은 생크림처럼 폭신한 기분이에요!'],
+ siv:['빙판 위에선 멈추는 게 제일 어려워.','조준 다시. 중심 낮추고, 숨 참고.','표적 명중. 오늘 기록 갱신이야.','미끄러졌어. 다음엔 중심을 더 낮출게.','…나? 스케이트 날 갈아 둔 보람이 있네.','당주님 손난로, 오늘은 완충해 둘게.','빙판에 누워서 하늘 보고 싶어…','스케이트 끈 풀고 좀 쉴게.','오늘은 얼음 위를 날아다닌 기분이야!'],
+ tesla:['안전 수칙은 귀찮지만, 다 누군가의 사고에서 나왔어요.','접지 확인! 방패 다시 들게요.','사고 0건, 승리 1건. 완벽한 하루예요.','오늘 사고 보고서 쓸게요. 같은 일은 없게.','안전반장이 MVP라니, 점검표에 적어 둘게요.','볼트한테 오늘은 폭발 금지라고 말해 두세요.','전력 소모 100%… 충전이 필요해요.','방전되기 전에 잠깐 쉴게요.','오늘은 모든 회로가 반짝반짝해요!'],
+ nemi:['잡음 속에도 꼭 들어야 할 목소리가 있어.','마이크 테스트! 하나, 둘! 다시 갈게!','방송 속보! 아스트라 승리!','방송이 끊겨도, 내 목소리는 계속 들릴 거야.','헉, 나? 이건 생방송으로 알려야 해!','오늘 엔딩 곡은 내가 고를게!','목이 쉬었어… 오늘 방송은 여기까지.','헤드셋 벗고 잠깐 조용히 있을래.','오늘은 주파수가 딱 맞는 날이야!'],
+ briar:['가시는 상처를 주려는 게 아니라, 지키려는 거야.','가지치기처럼 깔끔하게, 한 번 더.','울타리 안은 무사해! 오늘은 산딸기 파티야.','가지가 꺾였어도 뿌리는 살아 있어.','내가? 오늘 가시가 좀 날카로웠나 봐.','로완한테 산딸기 길 들킬 뻔했어. 쉿.','덤불 속에 숨어서 낮잠 자고 싶어…','검은 내려놓고 잠깐 쉴게.','오늘은 울타리마다 꽃이 핀 기분이야!'],
+ clover:['벌들은 길을 잃지 않아. 꿀 냄새를 기억하거든.','정찰 한 바퀴 더! 벌들보다 빨리!','승리의 꿀, 오늘은 다 같이 나눠 먹자!','따끔했지? 다음엔 우리가 따끔하게 해 줄게.','내가 MVP? 벌들한테도 자랑해야지!','오늘 꿀은 미카 물약 말고 우리가 먹자.','벌집처럼 머리가 웅웅거려… 좀 쉴래.','클로버 밭에 누워서 잠깐만 쉴게.','네잎클로버 찾은 날처럼 기분 좋아!']
+};
+for(const c of INTAKE_HEROES){const L=EXPANSION_LORE[c.id].lines,[a,b]=intakeTalk[c.id],X=INTAKE_LINES[c.id];if(!X)continue;const [talk,train,win,lose,mvp1,mvp2,tired1,tired2,happy]=X;Object.assign(L,{
+ greet:[c.quote,a],talk:[c.secret,c.bio,talk,a,b],
+ train:[train,c.skill+'! 한 번 더 정확하게.'],
+ win:[c.quote,win],lose:[lose,'아직 끝이 아니에요. '+c.dream+'까지, 다시 해 볼게요.'],
+ mvp:[mvp1,mvp2],skill:[c.skill+'!',c.quote],
+ tired:[tired1,tired2],happy:[b,happy]
 });}
 
 // 아카데미 운영 콘텐츠: 특성, 장비, 시설, 팀 케미, 랜덤 이벤트.
@@ -736,7 +894,8 @@ const BOND_STORIES = {
   ]
 };
 // 확장 영웅도 동일한 인연 성장과 대화 보상을 사용합니다.
-for(const c of EXPANSION_HEROES)BOND_STORIES[c.id]=[
+// 영웅마다 직접 쓴 이야기(EXPANSION_BONDS)를 쓰고, 없을 때만 아래 기본 틀을 씁니다.
+for(const c of EXPANSION_HEROES)BOND_STORIES[c.id]=EXPANSION_BONDS[c.id]?EXPANSION_BONDS[c.id].map(([title,text,w,t])=>({title,text,choices:[warm(w),tough(t)]})):[
  {title:c.home+'에서 온 편지',text:`훈련을 마친 ${c.name}가 코치를 찾아온다. “${c.quote}” ${c.bio} 오늘은 고향에서 가져온 작은 기념품을 전술판 옆에 놓아 둔다.`,choices:[warm('“네가 이 팀에 와 줘서 기뻐.”'),tough('“네가 잘하는 걸 우리 전술의 중심으로 만들어 보자.”')]},
  {title:'갑옷 아래의 마음',text:`늦은 밤, ${c.name}가 조심스럽게 자기 이야기를 꺼낸다. ${c.secret} “이런 모습까지 보여 줘도 괜찮을까요?” 코치는 잠시 전술판을 내려놓고 이야기를 듣는다.`,choices:[warm('“그것도 너다운 모습이야. 편하게 이야기해.”'),tough('“혼자 감추느라 힘들었겠어. 다음 훈련은 함께하자.”')]},
  {title:c.surname+'의 약속',text:`결전을 앞두고 ${c.name}가 동료들과 장비를 맞춘다. “${c.dream}. 혼자서는 먼 목표였지만 이제 함께 갈 사람들이 생겼어요.” ${c.skill}의 마지막 동작이 팀의 신호와 정확히 맞아떨어진다.`,choices:[warm('“그 꿈이 이뤄질 때까지 함께할게.”'),tough('“준비됐어. 네 힘을 팀의 승리로 보여 주자.”')]}
@@ -908,6 +1067,12 @@ CHARACTERS.push({id:'ronaldo',name:'크리스티아누 호날두',shortName:'호
 // 속성 상성: 불 → 얼음 → 풀 → 땅 → 전기 → 물 → 불 순환, 빛과 어둠은 서로에게 강합니다. 유리하면 피해 ×1.25, 불리하면 ×0.8.
 // 바람은 상성이 없는 대신 이동·공격 속도가 15% 빠릅니다. why/react는 상성표와 전투 표시에 쓰는 이유·반응 문구입니다.
 CHARACTERS.push(...EXPANSION_HEROES);
+// 밸런스 조정(배율): 등급별 목표 승률 SSR 60~70% · SR 45~55% · R 30~40%에 맞춰 튀는 영웅만 손봅니다. 상대 학교에도 똑같이 적용돼요.
+const BALANCE_TUNE={maren:{atk:.85},aerin:{atk:.85},ignis:{hp:.85,def:.92},seraph:{atk:.93},volt:{atk:.88},clover:{atk:.9},lucel:{atk:.92},mica:{atk:.92},
+  raika:{atk:1.18},flora:{atk:1.15,hp:1.05},soleine:{atk:1.15,hp:1.1},torres:{atk:1.06},kael:{atk:1.1,hp:1.05},glacia:{hp:1.1,def:1.1},gaia:{atk:.94,hp:1.02},eira:{atk:1.12,hp:1.08},
+  yuzu:{atk:1.22,hp:1.12},zephyr:{atk:1.25,hp:1.15},cindra:{atk:1.2,hp:1.12},ravenna:{hp:1.15,def:1.15},tesla:{hp:1.12,def:1.12},ondine:{hp:1.12,def:1.12},
+  briar:{atk:1.1,hp:1.08},vespa:{atk:1.06,hp:1.04},saffra:{atk:1.2},mika:{atk:1.1},lark:{atk:1.12}};
+if(!globalThis.ASTRA_NO_TUNE)for(const [id,t] of Object.entries(BALANCE_TUNE)){const c=CHARACTERS.find(c=>c.id===id);if(c)for(const [k,m] of Object.entries(t))c[k]=Math.round(c[k]*m);}
 // Explicit identity metadata: normal intake is 4 women / 1 man per element.
 const maleHeroes=new Set(['kael','theo','finn','ignis','zephyr','glacia','volt','rowan','ronaldo','torres','lucel']);
 CHARACTERS.forEach(c=>{c.gender=c.gender||(maleHeroes.has(c.id)?'male':'female');c.guest=['ronaldo','torres'].includes(c.id);});
@@ -1098,8 +1263,8 @@ function slotInfo(state,i){const S=sched(state),t=S[i],n=S.slice(0,i).filter(x=>
   const chip=t==='R'?'루'+(stage==='결승'?'결':stage.replace('강','')):stage==='예선'||stage==='결승'?stage:'컵'+stage.replace('강','');
   return {type:'cup',letter:t,n,short:stage,chip,name:`${cup?cupName(cup):CUPS[t].name} ${stage}`,state:out?'skip':bye?'bye':st};}
 function currentOpponent(state){return teamInfo(currentFixture(state)?.opp)||SCHOOLS[0];}
-// 상대 기본 레벨: 시즌마다 2씩 성장하고(누적), 1부 학교는 한 단계 높으며, 시즌 안에서도 3라운드마다 1씩 오릅니다.
-function opponentLevel(state,o,round=state.match){return Math.max(1,state.season*2-1+Math.floor(round/3)+(o.tier||0)+(state.divisions?.[1]?.includes(o.short)?1:0)-(state.divisions?.[3]?.includes(o.short)?1:0));}
+// 상대 기본 레벨: 시즌마다 2씩 성장하고(누적, 1학기 시작 Lv.2), 1부 학교는 한 단계 높으며, 시즌 안에서도 3라운드마다 1씩 오릅니다.
+function opponentLevel(state,o,round=state.match){return Math.max(1,state.season*2+Math.floor(round/3)+(o.tier||0)+(state.divisions?.[1]?.includes(o.short)?1:0)-(state.divisions?.[3]?.includes(o.short)?1:0));}
 // 1부 순위: 시즌 중에는 현재 순위표, 개막 전에는 지난 시즌 순서를 씁니다.
 function div1Rank(state,key){const L=state.leagues?.[1];if(L?.results?.length)return leagueTable(state,1).findIndex(r=>r.key===key)+1;return (state.divisions?.[1]||[]).indexOf(key)+1;}
 // 상대 보정치(능력치 %): ① 시즌 후반으로 갈수록 오르는 보정은 매 시즌 0에서 다시 시작하고, ② 1부 상위권 보정은 순위가 높을수록 커집니다. 둘 다 시즌이 지날수록 커집니다.
@@ -1288,7 +1453,7 @@ function autoTrainDay(state){const cfg=state.autoTrain;if(!cfg?.on)return null;c
   out.spent=g0-state.gold;return out;}
 // ── 전체 훈련 · 팀 컬러 ──
 // 전체 훈련으로 팀 훈련 단계를 올리고(하루 1회), 그중 하나를 팀 컬러로 지정하면 경기 내내 팀 전체에 적용됩니다.
-const TEAM_TRAIN_COST=400,TEAM_DRILL_MAX=5;
+const TEAM_TRAIN_COST=320,TEAM_DRILL_MAX=5;
 const TEAM_DRILLS=[
   {id:'teamwork',name:'팀워크',icon:'🤝',desc:lv=>`받는 회복 +${lv*5}% · 케미 효과 +${lv*10}%`,tip:'서포터·케미 조합이 많은 팀'},
   {id:'counter',name:'반격',icon:'⚔',desc:lv=>`근접 공격을 받으면 ${lv*4}% 확률로 공격력 70% 반격`,tip:'탱커·전사가 많은 팀, 돌격형 상대'},
@@ -1301,7 +1466,15 @@ function teamTrain(state,id){const d=state.teamDrills?.[id];if(!d||!TEAM_DRILLS.
 function setTeamColor(state,id){if(id===null){state.teamColor=null;return true;}if(!(state.teamDrills?.[id]?.lv>0))return false;state.teamColor=id;return true;}
 function teamColorOf(state){const id=state.teamColor,lv=state.teamDrills?.[id]?.lv||0;return id&&lv?{id,lv}:null;}
 const teamColorLevel=(state,id)=>state.teamColor===id?state.teamDrills?.[id]?.lv||0:0;
-const TRAIN_COST=180;
+// 회식: 선수단 전원 사기 +15 · 호감도 +2, 대신 피로 +12. 비용은 인원 수에 비례, 3일에 한 번.
+const DINNER={base:200,perHead:90,morale:15,fatigue:12,affinity:2,cooldown:3};
+const dinnerCost=state=>DINNER.base+DINNER.perHead*Object.keys(state.roster).length;
+const dinnerWait=state=>Math.max(0,DINNER.cooldown-(state.day-(state.dinnerDay??-99)));
+function teamDinner(state){if(dinnerWait(state))return {error:'cooldown',wait:dinnerWait(state)};const cost=dinnerCost(state);if(state.gold<cost)return {error:'gold',cost};
+  state.gold-=cost;book(state,-cost,'회식');state.dinnerDay=state.day;
+  for(const p of Object.values(state.roster)){p.morale=clamp100((p.morale??70)+DINNER.morale);p.fatigue=Math.min(100,(p.fatigue||0)+DINNER.fatigue);p.affinity=Math.min(100,(p.affinity||0)+DINNER.affinity);}
+  addNews(state,'회식',`선수단 회식 · 사기 +${DINNER.morale} · 피로 +${DINNER.fatigue} (${cost.toLocaleString()} G)`);return {cost};}
+const TRAIN_COST=140;
 // ── 팀 주장 ──
 // 선발 중 한 명을 주장으로 지정하면 주장의 역할에 따라 선발 전원에게 지휘 효과가 붙습니다. 린·닉스는 전용 지휘 효과.
 const CAPTAIN_AURA={탱커:{name:'철벽 지휘',desc:'선발 전원 방어력 +6%',mod:{def:.06}},전사:{name:'선봉 지휘',desc:'선발 전원 공격력 +4%',mod:{atk:.04}},암살자:{name:'급습 지휘',desc:'선발 전원 치명타 +3%p · 속도 +3',mod:{crit:.03,speed:3}},궁수:{name:'사격 지휘',desc:'선발 전원 공격 속도 +5%',mod:{aspd:.05}},마법사:{name:'주문 지휘',desc:'선발 전원 스킬 재사용 −6%',mod:{haste:.06}},서포터:{name:'수호 지휘',desc:'선발 전원 최대 체력 +5% · 회복량 +5%',mod:{hp:.05,heal:.05}}};
@@ -1352,7 +1525,9 @@ function runActivity(state,id,ids,rng=Math.random){if(canActivity(state,id,ids))
   ids.forEach(x=>{const p=state.roster[x];p.fatigue=clamp100(p.fatigue+a.fatigue);if(a.morale)p.morale=clamp100(p.morale+a.morale);});
   const base=ok?a.gold*(a.perStudent?ids.length:1):a.fail||0,gold=Math.round(base*(.8+(state.fame??30)/200)/10)*10;state.gold+=gold;book(state,gold,'외부 활동');if(ok&&a.fame)changeFame(state,a.fame);
   const log={id,ok,gold,party:[...ids],day:state.day};state.activities.unshift(log);state.activities.length=Math.min(state.activities.length,8);addNews(state,'활동',`${a.name} ${ok?'완료':'실패'} · +${gold} G`);return log;}
-function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<180||p.fatigue>=90) return false; state.gold-=180;book(state,-180,'훈련'); p[type]+=(type==='speed'?3:4)+lvl;p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
+// 훈련 효율: 이미 많이 올린 능력치일수록 오르는 양이 줄어듭니다(최소 1). 매일 훈련해도 끝없이 강해지지 않게.
+const trainGain=(p,type,facility=0)=>{const base=(type==='speed'?3:4)+facility;return Math.max(1,Math.round(base*36/(36+(p?.[type]||0))));};
+function train(state,id,type) { const p=state.roster[id],lvl=state.facilities?.training||0; if(!p || !['attack','defense','speed'].includes(type)||p.trained===state.day||state.gold<TRAIN_COST||p.fatigue>=90) return false; state.gold-=TRAIN_COST;book(state,-TRAIN_COST,'훈련'); p[type]+=trainGain(p,type,lvl);p.xp+=30+lvl*10;p.fatigue=Math.min(100,p.fatigue+15);p.trained=state.day;levelUp(p);return true; }
 function levelUp(p) { while(p.xp>=p.level*100){p.xp-=p.level*100;p.level++;} }
 function rest(state){restDay(state);state.lastAuto=autoTrainDay(state);quarterTick(state);}
 function restDay(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
@@ -1528,7 +1703,7 @@ class Battle {
       case 'gemFault':near(t.x,t.y,125).forEach(a=>{this.hit(u,a,u.atk*2.1,true);this.slowUnit(a,2);});this.shieldUnit(u,u,.14,4);break;
       case 'cadetShot':this.hit(u,t,u.atk*2.3,true);this.slowUnit(t,2);break;
       case 'cadetBurst':near(t.x,t.y,95).forEach(a=>{this.hit(u,a,u.atk*1.65,true);this.slowUnit(a,1.5);});break;
-      case 'cadetHeal':{const targets=allies.sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp).slice(0,2);if(u.skillVisual)u.skillVisual.targets=targets.map(a=>({uid:a.uid,x:a.x,y:a.y}));targets.forEach(a=>{this.healUnit(u,a,u.atk*2.3);a.slow=0;});break;}
+      case 'cadetHeal':{const targets=allies.sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp).slice(0,2);if(u.skillVisual)u.skillVisual.targets=targets.map(a=>({uid:a.uid,x:a.x,y:a.y}));targets.forEach(a=>{this.healUnit(u,a,u.atk*2.6);this.shieldUnit(u,a,.06,3);a.slow=0;});allies.filter(a=>!targets.includes(a)).forEach(a=>this.healUnit(u,a,u.atk*1.2));break;}
       case 'cadetGuard':this.shieldUnit(u,u,.24,5);near(u.x,u.y,115).forEach(a=>this.slowUnit(a,2));break;
       case 'cadetDash':this.dash(u,enemies.sort((a,b)=>b.range-a.range)[0],2.25,'wind');break;
       case 'forge':{// 용광로의 맹세: 아군 전원에게 보호막, 보호막이 남아 있는 동안 그 주변 적을 태웁니다
@@ -1968,7 +2143,9 @@ function drawSD(ctx,c,x,y,size=100,state='idle',time=0,flip=false,preview=false)
 const heroBoxes=new Map();
 function heroBox(id,img){if(heroBoxes.has(id))return heroBoxes.get(id);let box={x:0,y:0,w:img.width,h:img.height};try{const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;const g=cv.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0);const d=g.getImageData(0,0,img.width,img.height).data;let x0=img.width,y0=img.height,x1=-1,y1=-1;for(let yy=0;yy<img.height;yy++)for(let xx=0;xx<img.width;xx++)if(d[(yy*img.width+xx)*4+3]>40){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(yy<y0)y0=yy;if(yy>y1)y1=yy;}if(x1>=0)box={x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};}catch{}heroBoxes.set(id,box);return box;}
 // 키(높이)를 우선으로 맞추고, 무기·날개처럼 옆으로 넓은 그림은 가장자리가 조금 잘려도 됩니다(최대 25%).
-function drawHero(ctx,c,x,y,w,h){const img=getMedia('portrait:'+c.id);if(!img)return false;ctx.imageSmoothingEnabled=false;const b=heroBox(c.id,img),scale=Math.min(h*.95/b.h,w*1.25/b.w),dw=Math.round(b.w*scale),dh=Math.round(b.h*scale);ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.drawImage(img,b.x,b.y,b.w,b.h,Math.round(x+(w-dw)/2),Math.round(y+h-dh),dw,dh);ctx.restore();return true;}
+// 그림체 때문에 같은 키로 맞춰도 커 보이는 영웅(머리가 큰 SD풍 등)은 조금 줄입니다.
+const PORTRAIT_SCALE={mika:.86};
+function drawHero(ctx,c,x,y,w,h){const img=getMedia('portrait:'+c.id);if(!img)return false;ctx.imageSmoothingEnabled=false;const b=heroBox(c.id,img),scale=Math.min(h*.95/b.h,w*1.25/b.w)*(PORTRAIT_SCALE[c.id]||1),dw=Math.round(b.w*scale),dh=Math.round(b.h*scale);ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.drawImage(img,b.x,b.y,b.w,b.h,Math.round(x+(w-dw)/2),Math.round(y+h-dh),dw,dh);ctx.restore();return true;}
 
 
 document.querySelectorAll('[data-background]').forEach(el=>el.src=mediaAssets[el.dataset.background]);document.querySelectorAll('[data-download]').forEach(el=>el.href=mediaAssets[el.dataset.download]);await loadMedia();let motion='idle',paused=false,flipped=false,time=0,last=performance.now();
