@@ -371,12 +371,12 @@ function archiveLeagueResult(state,summary){
  const trophy=state.trophies?.find(t=>t.type==='league'&&t.season===summary.season);if(trophy)trophy.mvp=report.mvp;return report;
 }
 function archiveCupResult(state,L='C'){
- const cup=L==='R'?state.rookie:state.cup;if(!cup||cup.entered===false||(!cup.champion&&cup.alive))return null;
+ const cup=state[{C:'cup',R:'rookie',P:'champions'}[L]];if(!cup||cup.entered===false||(!cup.champion&&cup.alive))return null;
  // 같은 라운드 탈락 팀은 공동 순위. 뒤에서부터 결승(준우승)·4강·8강·16강·예선.
  const stages=cup.stages||['16강','8강','4강','결승'],n=stages.length,lost=cup.results.findIndex(r=>r?.some(m=>(m.home==='AST'||m.away==='AST')&&m.winner!=='AST')),won=cup.champion==='AST',back=lost<0?0:n-1-lost;
  const rank=won?1:[2,3,5,9,17][back]??17,placing=won?'우승':['준우승','4강 · 공동 3위','8강 · 공동 5위','16강 · 공동 9위','예선 · 공동 17위'][back]??`${stages[lost]} 탈락`;
  const name=cup.name||'아스트라 컵',stats=competitionStats(state.history,state.season,'cup',L),bonus=resultClone(cup.rewardBonus||{gold:0,gems:0,stones:0,item:null});
- const report=storeResult(state,{id:L==='R'?`rookie-${state.season}`:`cup-${state.season}`,type:'cup',cup:L,name,stages:[...stages],size:(cup.teams?.length||0)+(cup.byes?.length||0),season:state.season,division:state.division,final:!!cup.champion,rank,placing,champion:cup.champion,won,rounds:resultClone(cup.results),stats,bonus,squad:[...state.squad],mvp:won?resultClone(stats.mvp):null});
+ const report=storeResult(state,{id:`${{C:'cup',R:'rookie',P:'champions'}[L]}-${state.season}`,type:'cup',cup:L,name,stages:[...stages],size:(cup.teams?.length||0)+(cup.byes?.length||0),season:state.season,division:state.division,final:!!cup.champion,rank,placing,champion:cup.champion,won,rounds:resultClone(cup.results),stats,bonus,squad:[...state.squad],mvp:won?resultClone(stats.mvp):null});
  const trophy=state.trophies?.find(t=>t.type==='cup'&&(t.cup||'C')===L&&t.season===state.season);if(trophy)trophy.mvp=report.mvp;return report;
 }
 function pendingCompetitionResult(state){return (state.competitionResults||[]).slice().reverse().find(r=>!r.seen);}
@@ -1229,7 +1229,12 @@ const OLD_SCHEDULE=['L','L','L','C','L','L','L','L','C','L','L','L','C','L','L',
 // 아스트라 컵: 24개 학교. 2·3부 16팀이 예선을 치르고, 이긴 8팀이 1부 8팀과 16강에서 만납니다.
 // 루키 컵: 2부 상위 4팀 + 3부 상위 4팀(지난 시즌 순서)의 8강 토너먼트.
 const CUPS={C:{key:'cup',name:'아스트라 컵',short:'컵',stages:['예선','16강','8강','4강','결승'],win:900,lose:300,prize:{gold:2000,gems:800,stones:2,item:'SR'},fame:8},
-  R:{key:'rookie',name:'루키 컵',short:'루키',stages:['8강','4강','결승'],win:600,lose:250,prize:{gold:1000,gems:400,stones:1,item:'R'},fame:4}};
+  R:{key:'rookie',name:'루키 컵',short:'루키',stages:['8강','4강','결승'],win:600,lose:250,prize:{gold:1000,gems:400,stones:1,item:'R'},fame:4},
+  P:{key:'champions',name:'챔피언스 컵',short:'챔스',stages:['8강','4강','결승'],win:1500,lose:400,prize:{gold:4500,gems:1500,stones:4,item:'SSR'},fame:14}};
+// 챔피언스 컵: 1년(두 학기)에 한 번, 두 번째 학기 후반에 1부 8개 학교가 겨룹니다. 상대는 '챔스 보정'으로 가장 강합니다.
+const CHAMPIONS_BOOST=.18,isChampionsSeason=s=>(s.season||1)%2===0;
+function newChampionsCup(state){if(!isChampionsSeason(state))return null;const seeds=[...(state.divisions?.[1]||[])];if(seeds.length<8)return null;const teams=[1,8,4,5,3,6,2,7].map(n=>seeds[n-1]),entered=teams.includes('AST');return {letter:'P',name:CUPS.P.name,stages:[...CUPS.P.stages],teams,byes:[],seeds,results:[],alive:entered,entered,champion:null};}
+function seasonSchedule(state){const S=[...(state.divisions?.[3]?.length?SCHEDULE:OLD_SCHEDULE)];if(isChampionsSeason(state)&&state.champions){S.splice(14,0,'P');S.splice(18,0,'P');S.splice(22,0,'P');}return S;}
 const CUP_STAGES=CUPS.C.stages;
 const LEGACY_CUP_STAGES=['16강','8강','4강','결승'];
 const DIVISIONS=[1,2,3];
@@ -1264,20 +1269,34 @@ function cupJourney(cup){let won=0,lost=-1;(cup?.results||[]).forEach((r,i)=>{co
 // 시즌 일정 한 칸(i번째 경기)의 종류·이름·상태: done 끝남 / now 다음 경기 / skip 탈락으로 건너뜀 / '' 예정
 function slotInfo(state,i){const S=sched(state),t=S[i],n=S.slice(0,i).filter(x=>x===t).length,st=i<state.slot?'done':i===state.slot?'now':'';if(t==='L')return {type:'league',letter:'L',n,short:`R${n+1}`,chip:String(n+1),name:`${state.division}부 리그 ${n+1}라운드`,state:st};
   const cup=cupOf(state,t),stage=stagesOf(cup)[n]||'',j=cupJourney(cup),entered=!!cup&&cup.entered!==false,out=!entered||(j.lost>=0&&n>j.lost),bye=entered&&n===0&&!!cup.byes?.includes('AST');
-  const chip=t==='R'?'루'+(stage==='결승'?'결':stage.replace('강','')):stage==='예선'||stage==='결승'?stage:'컵'+stage.replace('강','');
+  const chip=t==='P'?'챔'+(stage==='결승'?'결':stage.replace('강','')):t==='R'?'루'+(stage==='결승'?'결':stage.replace('강','')):stage==='예선'||stage==='결승'?stage:'컵'+stage.replace('강','');
   return {type:'cup',letter:t,n,short:stage,chip,name:`${cup?cupName(cup):CUPS[t].name} ${stage}`,state:out?'skip':bye?'bye':st};}
-function currentOpponent(state){return teamInfo(currentFixture(state)?.opp)||SCHOOLS[0];}
+function currentOpponent(state){const o=teamInfo(currentFixture(state)?.opp)||SCHOOLS[0];return {...o,lineup:schoolLineup(state,o)};}
 // 상대 기본 레벨: 시즌마다 2씩 성장하고(누적, 1학기 시작 Lv.2), 1부 학교는 한 단계 높으며, 시즌 안에서도 3라운드마다 1씩 오릅니다.
 // 시즌 폼: 학교마다 매 학기 컨디션이 달라집니다(침체 −1 · 평년 0 · 상승세 +1 · 돌풍 +2). 등급과 합쳐 0~3으로 제한.
 const FORM_LABEL={'-1':'침체','0':'평년','1':'상승세','2':'돌풍'};
 // 강팀일수록 침체 확률이 높아(등급당 +9%) 매 시즌 같은 팀만 독주하지 않습니다.
 function seasonForm(state,key){if(!key||key==='AST')return 0;const tier=teamInfo(key)?.tier||0,down=.2+.09*tier,r=random(hash(`form-${state.season||1}-${key}`))();return r<down?-1:r<down+.48?0:r<.94?1:2;}
 const formTier=(state,o)=>Math.max(0,Math.min(3,(o.tier||0)+seasonForm(state,o.short)));
-function opponentLevel(state,o,round=state.match){return Math.max(1,state.season*2+Math.floor(round/3)+formTier(state,o)+(state.divisions?.[1]?.includes(o.short)?1:0)-(state.divisions?.[3]?.includes(o.short)?1:0));}
+
+// ── 난이도: 상대 학교의 성장 ──
+// ① 시즌이 지날수록 레벨·능력치·보정이 함께 오릅니다. ② 리그가 높을수록 더 강합니다(1부 +12%).
+// ③ 리그가 높고 시즌이 지날수록 라인업에 SSR이 늘어납니다(같은 역할끼리 교체). ④ 매 시즌 두 학교가 시즌 중반에 '각성'해 확 강해집니다.
+const DIV_BOOST={1:.03,2:.1,3:0},AWAKEN_BOOST=.16,OPP_SEASON_BOOST=.03;
+const SSR_POOL=()=>CHARACTERS.filter(c=>c.rarity==='SSR'&&c.id!=='ronaldo'&&c.id!=='torres');
+function schoolLineup(state,o){if(!o?.lineup||o.short==='AST')return o?.lineup||[];const div=divisionOf(state,o.short)||o.div||2,season=state.season||1,want=Math.min(5,({1:3,2:2,3:1}[div]??1)+Math.floor((season-1)/2)+((o.tier||0)>=2?1:0));
+ const line=[...o.lineup],rar=id=>CHARACTERS.find(c=>c.id===id)?.rarity,have=line.filter(id=>rar(id)==='SSR').length;if(have>=want)return line;const rng=random(hash(`lineup-${season}-${o.short}`));let need=want-have;
+ const order=line.map((id,i)=>i).sort((a,b)=>({R:0,SR:1,SSR:2}[rar(line[a])]??1)-({R:0,SR:1,SSR:2}[rar(line[b])]??1)||rng()-.5);
+ for(const i of order){if(need<=0)break;if(rar(line[i])==='SSR')continue;const role=CHARACTERS.find(c=>c.id===line[i])?.role,pool=SSR_POOL().filter(c=>c.role===role&&!line.includes(c.id));if(!pool.length)continue;line[i]=pool[Math.floor(rng()*pool.length)].id;need--;}
+ return line;}
+function awakenedTeams(state){const season=state.season||1,keys=DIVISIONS.flatMap(d=>state.divisions?.[d]||[]).filter(k=>k!=='AST');if(keys.length<2)return {round:HALF,teams:[]};const rng=random(hash(`awake-${season}`)),pick=shuffle(keys,rng).slice(0,2);return {round:4+Math.floor(rng()*5),teams:pick};}
+function isAwakened(state,key,round=state.match){const A=awakenedTeams(state);return A.teams.includes(key)&&round>=A.round;}
+function opponentLevel(state,o,round=state.match){return Math.max(1,Math.round(state.season*2.3)+Math.floor(round/3)+formTier(state,o)+(state.divisions?.[1]?.includes(o.short)?1:0)-(state.divisions?.[3]?.includes(o.short)?1:0));}
 // 1부 순위: 시즌 중에는 현재 순위표, 개막 전에는 지난 시즌 순서를 씁니다.
 function div1Rank(state,key){return (state.divisions?.[1]||[]).indexOf(key)+1;}
 // 상대 보정치(능력치 %): ① 시즌 후반으로 갈수록 오르는 보정은 매 시즌 0에서 다시 시작하고, ② 1부 상위권 보정은 순위가 높을수록 커집니다. 둘 다 시즌이 지날수록 커집니다.
-function opponentBoost(state,key,round=state.match){const season=state.season||1,late=Math.min(1,round/(ROUNDS-1))*(.15+.03*(season-1));let top=0;if(state.divisions?.[1]?.includes(key)){top=([.12,.09,.06,.03][div1Rank(state,key)-1]||0)*(1+.25*(season-1));}return {late:Math.round(late*1000)/1000,top:Math.round(top*1000)/1000,total:Math.round((late+top)*1000)/1000};}
+function opponentBoost(state,key,round=state.match){const season=state.season||1,late=Math.min(1,round/(ROUNDS-1))*(.15+.03*(season-1));let top=0;if(state.divisions?.[1]?.includes(key)){top=([.12,.09,.06,.03][div1Rank(state,key)-1]||0)*(1+.25*(season-1));}const fxc=state.schedule?.[state.slot]==='P'?cupFixture(state,'P'):null,champ=fxc&&fxc.opp===key?CHAMPIONS_BOOST:0,divB=(DIV_BOOST[divisionOf(state,key)]??0)+champ,grow=OPP_SEASON_BOOST*(season-1),awake=isAwakened(state,key,round)?AWAKEN_BOOST:0,total=late+top+divB+grow+awake;
+  return {late:Math.round(late*1000)/1000,top:Math.round(top*1000)/1000,div:divB,grow:Math.round(grow*1000)/1000,awake,total:Math.round(total*1000)/1000};}
 function leagueTable(state,div=state.division){
   if(!state.leagues?.[div])return (state.divisions?.[div]||[]).map(k=>({key:k,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,form:[]}));
   const rows=Object.fromEntries(state.divisions[div].map(k=>[k,{key:k,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,form:[]}]));
@@ -1286,7 +1305,7 @@ function leagueTable(state,div=state.division){
 }
 function teamFromState(state){return {info:TEAM,color:teamColorOf(state),tactics:{...state.tactics},members:state.squad.map(id=>({...stats(id,state.roster[id],unitBonus(state,id)),order:{...(state.tactics.orders?.[id]||{})}})),positions:formationPositions(state)};}
 function teamFromOpponent(o,level,boost=0){return {info:o,tactics:{...o.style},boost,members:o.lineup.map(id=>stats(id,{legacy:true,level,stars:Math.max(0,o.tier||0),attack:(level-1)*6,defense:(level-1)*4,speed:level-1,awaken:AWAKEN.filter(a=>level>=a.level).length},{hp:boost,atk:boost,def:boost})),positions:presetPositions(o.style.formation,o.lineup)};}
-const opponentTeam=(state,o,round=state.match)=>teamFromOpponent(o,opponentLevel(state,o,round),opponentBoost(state,o.short,round).total);
+const opponentTeam=(state,o,round=state.match)=>teamFromOpponent({...o,lineup:schoolLineup(state,o)},opponentLevel(state,o,round),opponentBoost(state,o.short,round).total);
 const kills=(b,team)=>b.units.filter(u=>u.team!==team&&!u.alive&&!u.subbedOut).length;
 function simulateMatch(state,home,away,round,salt='',neutral=false){const h=teamInfo(home),a=teamInfo(away);const b=new Battle(null,hash(`${state.season}-${round}-${home}-${away}${salt}`),[opponentTeam(state,h,round),opponentTeam(state,a,round)],{ai:[true,true],home:neutral?null:0});for(let i=0;i<2500&&!b.done;i++)b.step(.05);return {home,away,hs:kills(b,0),as:kills(b,1),w:b.winner};}
 function rateBattle(b){
@@ -1308,7 +1327,7 @@ function newRookieCup(state){const d2=state.divisions?.[2]||[],d3=state.division
   return {letter:'R',name:CUPS.R.name,stages:[...CUPS.R.stages],teams,byes:[],seeds,results:[],alive:entered,entered,champion:null};}
 function knockout(m,salt){if(m.w!==2)return {...m,winner:m.w===0?m.home:m.away};return {...m,pen:true,winner:random(hash(salt))()<.5?m.home:m.away};}
 function cupResultText(cup){if(!cup)return null;if(cup.entered===false)return '불참';if(cup.champion==='AST')return '우승';const lost=cup.results.findIndex(r=>r?.some(m=>(m.home==='AST'||m.away==='AST')&&m.winner!=='AST'));return lost>=0?`${stagesOf(cup)[lost]} 탈락`:cup.alive?'진행 중':'-';}
-function playCupRound(state,L,stage,ours=null){const c=cupOf(state,L),tag=L==='C'?'cup':'rookie';c.results[stage]=cupPairs(c,stage).map(([h,a])=>ours&&(h==='AST'||a==='AST')?ours:knockout(simulateMatch(state,h,a,state.match,(L==='C'?'-cup':'-rookie')+stage,true),`${tag}-${state.season}-${stage}-${h}-${a}`));if(stage===stagesOf(c).length-1)c.champion=c.results[stage][0].winner;}
+function playCupRound(state,L,stage,ours=null){const c=cupOf(state,L),tag=CUPS[L].key;c.results[stage]=cupPairs(c,stage).map(([h,a])=>ours&&(h==='AST'||a==='AST')?ours:knockout(simulateMatch(state,h,a,state.match,'-'+tag+stage,true),`${tag}-${state.season}-${stage}-${h}-${a}`));if(stage===stagesOf(c).length-1)c.champion=c.results[stage][0].winner;}
 
 // ── 이사회 ─────────────────────────────────────────────
 function boardGoal(state){
@@ -1320,7 +1339,7 @@ function boardGoal(state){
 const boardMood=c=>c>=80?'절대적 신뢰':c>=60?'만족':c>=40?'관망':c>=20?'우려':'해임 위기';
 function boardShift(state,delta){state.board.confidence=clamp100(state.board.confidence+delta);if(state.board.confidence<=0)state.sacked=true;}
 function rescueCoach(state){if(!state.sacked||state.board.lastChance)return false;state.sacked=false;state.board.lastChance=true;state.board.confidence=30;state.gold=Math.floor(state.gold/2);addNews(state,'이사회','이사회가 마지막 기회를 주었습니다. 다음 실패는 없습니다.');return true;}
-function startSeason(state){state.leagues=Object.fromEntries(DIVISIONS.filter(d=>state.divisions[d]?.length).map(d=>[d,newLeague(state.season,state.divisions[d])]));state.cup=newCup(state);state.rookie=newRookieCup(state);state.schedule=[...(state.divisions[3]?.length?SCHEDULE:OLD_SCHEDULE)];state.slot=0;state.match=0;state.board.goal=boardGoal(state);}
+function startSeason(state){state.leagues=Object.fromEntries(DIVISIONS.filter(d=>state.divisions[d]?.length).map(d=>[d,newLeague(state.season,state.divisions[d])]));state.cup=newCup(state);state.rookie=newRookieCup(state);state.champions=newChampionsCup(state);state.schedule=seasonSchedule(state);state.slot=0;state.match=0;state.board.goal=boardGoal(state);}
 
 // ── 아카데미 운영 ─────────────────────────────────────
 const isMatchDay=state=>state.day>=state.matchDay;
@@ -1600,6 +1619,7 @@ function formStreak(form){if(!form?.length)return {r:null,n:0};const r=form.at(-
 const PAPER_EVERY=3;
 // 호외: 큰 사건이 생기면 다음 아침 바로 발행합니다.
 function pushScoop(state,a){(state.scoops??=[]).push(a);}
+function awakenScoop(state){const A=awakenedTeams(state);if(state.match<A.round||state.awakeNews===state.season)return;state.awakeNews=state.season;A.teams.forEach(k=>{const o=teamInfo(k);pushScoop(state,{tag:'각성',title:`${o.name.split(' ')[0]} 각성! 후반기 돌풍 예고`,body:`${o.name}이(가) 시즌 중반 무섭게 달라졌다. 전력이 크게 올라 남은 경기에서 돌풍을 일으킬 전망이다.`.replace('이(가)',(c=>(c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28)?'이':'가')(o.name.charCodeAt(o.name.length-1))),team:k});});}
 function streakScoop(state){const h=state.history?.[0];if(!h||h.season!==state.season||h.day!==state.day-1||h.type==='cup')return;const s=formStreak(leagueTable(state).find(r=>r.key==='AST')?.form);
   if(s.r==='W'&&(s.n===5||s.n===10))pushScoop(state,{tag:'연승',title:`파죽지세! 아스트라 ${s.n}연승`,body:`${state.division}부 리그에서 ${s.n}경기 연속 승리. 상대 학교들이 아스트라 분석에 들어갔다는 소문이다.`,team:'AST'});
   if(s.r==='L'&&s.n===5)pushScoop(state,{tag:'연패',title:`아스트라 5연패… 위기의 아카데미`,body:'다섯 경기째 승리가 없다. 이사회가 긴급회의를 소집했다는 소식이다.',team:'AST'});}
@@ -1732,7 +1752,7 @@ function dailyPaper(state){
   A.sort((a,b)=>b.p-a.p);const out=[],cnt={};for(const a of A){if(out.length>=9)break;if(cnt[a.tag])continue;out.push(a);cnt[a.tag]=1;}for(const a of A){if(out.length>=9)break;if(out.includes(a)||cnt[a.tag]>=2)continue;out.push(a);cnt[a.tag]++;}out.sort((a,b)=>b.p-a.p);
   if(!out.length)out.push({tag:'아카데미',title:'오늘도 평화로운 아스트라',body:'큰 소식 없는 하루. 훈련장에는 땀방울만 가득하다.'});
   return {season:state.season,day:state.day,no:(state.paper?.no||0)+1,seen:false,articles:out.map(({p,...a})=>a)};}
-function rest(state){restDay(state);state.lastAuto=null;state.lastClass=timetableDay(state);quarterTick(state);streakScoop(state);publishPaper(state);}
+function rest(state){restDay(state);state.lastAuto=null;state.lastClass=timetableDay(state);quarterTick(state);streakScoop(state);awakenScoop(state);publishPaper(state);}
 function restDay(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
 // 하루를 넘기고, 인연 이야기나 아카데미 이벤트가 생길 수 있습니다.
 function advanceDay(state,rng=Math.random){
@@ -2007,7 +2027,7 @@ function settle(state,battle){
     const L=fx.letter,C=CUPS[L],cup=cupOf(state,L),stages=stagesOf(cup),stage=fx.stage,ours={home:'AST',away:opp,hs:score[0],as:score[1],w:battle.winner,pen:draw,winner:cupWin?'AST':opp};playCupRound(state,L,stage,ours);
     if(!cupWin)cup.alive=false;else state.stones=(state.stones||0)+1;label=`${C.short} ${stages[stage]}`;
     if(cupWin&&cup.champion==='AST'){const P=C.prize,nm=cupName(cup);state.gold+=P.gold;book(state,P.gold,`${nm} 우승 상금`);changeFame(state,C.fame,`${nm} 우승`);state.gems+=P.gems;state.stones+=P.stones;const it=grantItem(state,P.item,random(hash((L==='C'?'cupprize':'rookieprize')+state.season)));cup.rewardBonus={gold:P.gold,gems:P.gems,stones:P.stones,item:it.id};pushScoop(state,{tag:'우승',title:`아스트라, ${nm} 정상에 서다!`,body:`토너먼트를 모두 이겨 낸 아스트라가 ${nm} 트로피를 들어 올렸다. 상금 ${P.gold.toLocaleString()} 골드. 캠퍼스는 밤새 축제 분위기였다.`,team:'AST'});state.trophies.unshift({type:'cup',cup:L,name:nm,season:state.season,ceremony:{seen:false,squad:[...state.squad],gold:P.gold,gems:P.gems,stones:P.stones}});addNews(state,'컵',`${nm} 우승! 상금 ${P.gold.toLocaleString()} 골드 · ${P.gems} 크리스탈 · 「${it.name}」`);boardShift(state,L==='C'?10:5);}
-    else boardShift(state,cupWin?(L==='C'?2:1):L==='C'&&stage===(cup.byes?.includes('AST')?1:0)?-3:0);
+    else boardShift(state,cupWin?(L==='P'?3:L==='C'?2:1):L==='C'&&stage===(cup.byes?.includes('AST')?1:0)?-3:0);
   }
   const ourMvp=mvp.team===0?mvp.id:null,starters=battle.units.filter(u=>u.team===0&&!u.subbedOut).map(u=>u.id),speaker=ourMvp||starters[Math.floor(battle.time)%starters.length],good0=type==='cup'?cupWin:win,quote={id:speaker,text:voice(speaker,ourMvp?'mvp':good0?'win':'lose',state.day+state.slot)};
   state.history.unshift({opponent:battle.opponent.name,opp,type,label,full:type==='cup'?`${fx.cupName} ${fx.stageName}`:`${state.division}부 리그 ${round+1}라운드`,cup:type==='cup'?fx.letter:null,stage:type==='cup'?fx.stage:null,outcome:type==='cup'?(cupWin?(fx.stage>=stagesOf(cupOf(state,fx.letter)).length-1?'우승!':`${stagesOf(cupOf(state,fx.letter))[fx.stage+1]} 진출`):`${fx.stageName} 탈락`):null,quote,win:type==='cup'?cupWin:win,draw:type==='cup'?false:draw,pen:type==='cup'&&draw,score,round:round+1,time:Math.round(battle.time),day:state.day,season:state.season,gold,gems,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},units:battle.units.map(u=>({id:u.id,team:u.team,damage:u.damage,healing:u.healing,shielded:Math.round(u.shielded||0),kills:u.kills,taken:u.taken,rating:u.rating,alive:u.alive,sub:u.uid.includes('s')||!!u.subbedOut}))});state.history=state.history.slice(0,60);
