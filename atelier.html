@@ -1285,12 +1285,17 @@ function currentOpponent(state){const o=teamInfo(currentFixture(state)?.opp)||SC
 // 시즌 폼: 학교마다 매 학기 컨디션이 달라집니다(침체 −1 · 평년 0 · 상승세 +1 · 돌풍 +2). 등급과 합쳐 0~3으로 제한.
 const FORM_LABEL={'-1':'침체','0':'평년','1':'상승세','2':'돌풍'};
 // 강팀일수록 침체 확률이 높아(등급당 +9%) 매 시즌 같은 팀만 독주하지 않습니다.
-function seasonForm(state,key){if(!key||key==='AST')return 0;const tier=teamInfo(key)?.tier||0,down=.2+.09*tier,r=random(hash(`form-${state.season||1}-${key}`))();return r<down?-1:r<down+.48?0:r<.94?1:2;}
+function seasonForm(state,key){if(!key||key==='AST')return 0;const tier=teamInfo(key)?.tier||0,down=TRADITION[key]?.2:.2+.09*tier,r=random(hash(`form-${state.season||1}-${key}`))();return r<down?-1:r<down+.48?0:r<.94?1:2;}
 const formTier=(state,o)=>Math.max(0,Math.min(3,(o.tier||0)+seasonForm(state,o.short)));
 
 // ── 난이도: 상대 학교의 성장 ──
 // ① 시즌이 지날수록 레벨·능력치·보정이 함께 오릅니다. ② 리그가 높을수록 더 강합니다(1부 +12%).
 // ③ 리그가 높고 시즌이 지날수록 라인업에 SSR이 늘어납니다(같은 역할끼리 교체). ④ 매 시즌 두 학교가 시즌 중반에 '각성'해 확 강해집니다.
+// 전통 강호: 오브시디언·발키리는 처음부터 조금 더 강하고, 강팀이라고 해서 더 자주 침체하지 않습니다.
+const TRADITION={OBS:.035,VAL:.025};
+// 지난 시즌 순위 → 다음 시즌 성장 보정: 매 시즌 리그 순위에 따라 쌓이고(이전 값은 30% 줄어듦), -4% ~ +12% 사이로 유지합니다.
+const RANK_GROWTH=[.025,.018,.012,.006,0,-.004,-.008,-.012];
+function updateSchoolGrowth(state,tables){const g=state.schoolGrowth??={};for(const d in tables)tables[d].forEach((r,i)=>{if(r.key==='AST')return;g[r.key]=Math.round(Math.max(-.04,Math.min(.1,(g[r.key]||0)*.6+(RANK_GROWTH[i]??0)))*1000)/1000;});return g;}
 const DIV_BOOST={1:.03,2:.1,3:0},AWAKEN_BOOST=.16,OPP_SEASON_BOOST=.03;
 const SSR_POOL=()=>CHARACTERS.filter(c=>c.rarity==='SSR'&&c.id!=='ronaldo'&&c.id!=='torres');
 function schoolLineup(state,o){if(!o?.lineup||o.short==='AST')return o?.lineup||[];const div=divisionOf(state,o.short)||o.div||2,season=state.season||1,want=Math.min(5,({1:3,2:2,3:1}[div]??1)+Math.floor((season-1)/2)+((o.tier||0)>=2?1:0));
@@ -1304,7 +1309,7 @@ function opponentLevel(state,o,round=state.match){return Math.max(1,Math.round(s
 // 1부 순위: 시즌 중에는 현재 순위표, 개막 전에는 지난 시즌 순서를 씁니다.
 function div1Rank(state,key){return (state.divisions?.[1]||[]).indexOf(key)+1;}
 // 상대 보정치(능력치 %): ① 시즌 후반으로 갈수록 오르는 보정은 매 시즌 0에서 다시 시작하고, ② 1부 상위권 보정은 순위가 높을수록 커집니다. 둘 다 시즌이 지날수록 커집니다.
-function opponentBoost(state,key,round=state.match){const season=state.season||1,late=Math.min(1,round/(ROUNDS-1))*(.15+.03*(season-1));let top=0;if(state.divisions?.[1]?.includes(key)){top=([.12,.09,.06,.03][div1Rank(state,key)-1]||0)*(1+.25*(season-1));}const divB=DIV_BOOST[divisionOf(state,key)]??0,grow=OPP_SEASON_BOOST*(season-1),awake=isAwakened(state,key,round)?AWAKEN_BOOST:0,total=late+top+divB+grow+awake;
+function opponentBoost(state,key,round=state.match){const season=state.season||1,late=Math.min(1,round/(ROUNDS-1))*(.15+.03*(season-1));let top=0;if(state.divisions?.[1]?.includes(key)){top=([.12,.09,.06,.03][div1Rank(state,key)-1]||0)*(1+.25*(season-1));}const divB=DIV_BOOST[divisionOf(state,key)]??0,trad=TRADITION[key]||0,prog=state.schoolGrowth?.[key]||0,grow=OPP_SEASON_BOOST*(season-1)+trad+prog,awake=isAwakened(state,key,round)?AWAKEN_BOOST:0,total=late+top+divB+grow+awake;
   return {late:Math.round(late*1000)/1000,top:Math.round(top*1000)/1000,div:divB,grow:Math.round(grow*1000)/1000,awake,total:Math.round(total*1000)/1000};}
 function leagueTable(state,div=state.division){
   if(!state.leagues?.[div])return (state.divisions?.[div]||[]).map(k=>({key:k,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,form:[]}));
@@ -1792,6 +1797,7 @@ function resolveEvent(state,index,rng=Math.random){
 const SEASON_REWARDS=[{gold:3000,gems:1500,item:'SSR'},{gold:2200,gems:1100,item:'SR'},{gold:1600,gems:900,item:'SR'},{gold:1200,gems:700},{gold:1200,gems:700},{gold:1000,gems:600},{gold:1000,gems:600},{gold:1000,gems:600}];
 function endSeason(state){
   const div=state.division,divs=DIVISIONS.filter(d=>state.divisions[d]?.length),last=Math.max(...divs),tables=Object.fromEntries(divs.map(d=>[d,leagueTable(state,d)])),table=tables[div],rank=table.findIndex(r=>r.key==='AST')+1,row=table[rank-1];
+  updateSchoolGrowth(state,tables);
   const up={},down={};divs.forEach(d=>{up[d]=d>1?tables[d].slice(0,PROMOTE).map(r=>r.key):[];down[d]=d<last?tables[d].slice(-PROMOTE).map(r=>r.key):[];});
   const promoted=up[div],relegated=down[div];
   const base=SEASON_REWARDS[rank-1],mult=div===1?1.5:div===2?1:.7,reward={gold:Math.round(base.gold*mult),gems:Math.round(base.gems*mult)};
