@@ -1586,7 +1586,7 @@ function healthScore({income,expense,net,cash,debt}){const margin=net/Math.max(5
 const gradeOf=score=>score>=85?'S':score>=70?'A':score>=55?'B':score>=40?'C':'D';
 const GRADE_FACTOR={S:1.15,A:1.08,B:1,C:.95,D:.9};
 const fameFactor=state=>.6+(state.fame??30)/100;
-const fameLabel=f=>f>=85?'전설의 명문':f>=65?'명문 아카데미':f>=45?'떠오르는 강호':f>=25?'지역의 기대주':'무명';
+const fameLabel=f=>f>=100?'전설의 명문':f>=70?'명문 아카데미':f>=45?'떠오르는 강호':f>=25?'지역의 기대주':'무명';
 function sponsorAmount(state,grade){return Math.round(SPONSOR_BASE*fameFactor(state)*(GRADE_FACTOR[grade]||1)/10)*10;}
 function changeFame(state,d,reason){if(!d)return;const before=state.fame??30;state.fame=Math.max(0,Math.min(100,before+d));if(Math.abs(d)>=4&&reason)addNews(state,'명성',`${reason} · 명성 ${d>0?'+':''}${d}`);}
 function matchFame(state,won,draw){if(won){state.loseStreak=0;changeFame(state,2);}else if(draw){state.loseStreak=0;}else{state.loseStreak=(state.loseStreak||0)+1;changeFame(state,state.loseStreak>=3?-2:-1,state.loseStreak===3?'3연패':null);}}
@@ -1633,6 +1633,21 @@ function formStreak(form){if(!form?.length)return {r:null,n:0};const r=form.at(-
 const PAPER_EVERY=3;
 // 호외: 큰 사건이 생기면 다음 아침 바로 발행합니다.
 function pushScoop(state,a){(state.scoops??=[]).push(a);}
+
+// ── 학교 명성 ──
+// 다른 학교들의 명성: 리그 등급 · 학교 등급 · 전통 · 최근 성적(성장 보정) · 이번 시즌 폼으로 정해지고, 0~99 사이입니다(100 '전설의 명문'은 아스트라만 노릴 수 있어요).
+const FAME_BASE={1:58,2:36,3:18},FAME_TRADITION={OBS:22,VAL:16};
+function schoolFame(state,key){if(key==='AST')return state.fame??30;const o=teamInfo(key);if(!o)return 0;const div=divisionOf(state,key)||o.div||2;
+ const v=(FAME_BASE[div]??30)+(o.tier||0)*6+(FAME_TRADITION[key]||0)+Math.round((state.schoolGrowth?.[key]||0)*180)+seasonForm(state,key)*3+(hash(key)%7);return Math.max(0,Math.min(99,Math.round(v)));}
+function fameTable(state){return [...new Set(DIVISIONS.flatMap(d=>state.divisions?.[d]||[]))].map(k=>({key:k,fame:schoolFame(state,k),div:divisionOf(state,k)})).sort((a,b)=>b.fame-a.fame||a.div-b.div);}
+// 파워 랭킹: 지금 시점의 학교별 전력과 선수별 전력(각 학교 라인업 기준, 아스트라는 선발 기준)
+function powerRankings(state){const teams=[...new Set(DIVISIONS.flatMap(d=>state.divisions?.[d]||[]))].map(k=>{if(k==='AST')return {key:k,power:power(state)};const t=opponentTeam(state,teamInfo(k));return {key:k,power:teamPower(t),members:t.members};}).sort((a,b)=>b.power-a.power);
+ const players=[];for(const t of teams){if(t.key==='AST'){state.squad.forEach(id=>players.push({id,team:'AST',power:unitPower(stats(id,state.roster[id],unitBonus(state,id)))}));}else t.members.forEach(m=>players.push({id:m.id,team:t.key,power:unitPower(m)}));}
+ players.sort((a,b)=>b.power-a.power);return {teams,players};}
+function powerScoop(state){const fx=currentFixture(state);if(!fx||fx.type!=='cup'||fx.letter!=='C'||state.powerNews===state.season)return;const c=cupOf(state,'C');if(!c||c.results.some(r=>r?.some(m=>m.home==='AST'||m.away==='AST')))return;state.powerNews=state.season;
+ const R=powerRankings(state),nm=k=>(teamInfo(k)?.name||k).split(' ')[0],hn=id=>{const c=CHARACTERS.find(c=>c.id===id);return c?.shortName||c?.name||id;},me=R.teams.findIndex(t=>t.key==='AST')+1;
+ pushScoop(state,{tag:'파워 랭킹',title:`아스트라 컵 개막 앞두고 학교 파워 랭킹 발표`,body:`${R.teams.slice(0,6).map((t,i)=>`${i+1}. ${nm(t.key)} ${Math.round(t.power).toLocaleString()}`).join(' · ')} … 아스트라는 ${me}위.`,team:R.teams[0].key});
+ pushScoop(state,{tag:'선수 랭킹',title:`컵 대회 지배할 선수는? 선수 파워 TOP 6`,body:`${R.players.slice(0,6).map((p,i)=>`${i+1}. ${hn(p.id)}(${nm(p.team)}) ${Math.round(p.power).toLocaleString()}`).join(' · ')}`,hero:R.players[0].id});}
 function awakenScoop(state){const A=awakenedTeams(state);if(state.match<A.round||state.awakeNews===state.season)return;state.awakeNews=state.season;A.teams.forEach(k=>{const o=teamInfo(k);pushScoop(state,{tag:'각성',title:`${o.name.split(' ')[0]} 각성! 후반기 돌풍 예고`,body:`${o.name}이(가) 시즌 중반 무섭게 달라졌다. 전력이 크게 올라 남은 경기에서 돌풍을 일으킬 전망이다.`.replace('이(가)',(c=>(c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28)?'이':'가')(o.name.charCodeAt(o.name.length-1))),team:k});});}
 function streakScoop(state){const h=state.history?.[0];if(!h||h.season!==state.season||h.day!==state.day-1||h.type==='cup')return;const s=formStreak(leagueTable(state).find(r=>r.key==='AST')?.form);
   if(s.r==='W'&&(s.n===5||s.n===10))pushScoop(state,{tag:'연승',title:`파죽지세! 아스트라 ${s.n}연승`,body:`${state.division}부 리그에서 ${s.n}경기 연속 승리. 상대 학교들이 아스트라 분석에 들어갔다는 소문이다.`,team:'AST'});
@@ -1675,7 +1690,7 @@ function dailyPaper(state){
     if(div<3&&me>=rows.length-PROMOTE-1)add(5.5,'강등 위기','아스트라, 강등권 경고등',`${me+1}위로 처진 아스트라. 남은 ${ROUNDS-state.match}경기가 운명을 가른다.`);}
   // 5) 우리 선수: 루키 · 화제의 선수 · 부상
   const ids=Object.keys(state.roster),avg=id=>{const p=state.roster[id];return p.apps?p.ratingSum/p.apps:0;};
-  const rook=ids.filter(id=>{const p=state.roster[id];return p.apps>=1&&p.apps<=5&&avg(id)>=7;}).sort((a,b)=>avg(b)-avg(a))[0];
+  const rook=ids.filter(id=>{const p=state.roster[id];return p.apps>=1&&p.apps<=3&&avg(id)>=7.5&&!(state.rookieNews||[]).includes(id);}).sort((a,b)=>avg(b)-avg(a))[0];if(rook)(state.rookieNews??=[]).push(rook);
   if(rook)add(5,'루키',paperPick(rng,[`신예 ${hn(rook)}, 데뷔 ${state.roster[rook].apps}경기 만에 존재감`,`루키 ${josa(hn(rook),'을','를')} 주목하라`]),`${hn(rook)}의 평균 평점은 ${avg(rook).toFixed(2)}. 출전은 적지만 벌써 팀의 핵심으로 떠오르고 있다.`,{hero:rook});
   const star=ids.filter(id=>state.roster[id].apps>=3).sort((a,b)=>avg(b)-avg(a))[0];
   if(star&&star!==rook)add(4.5,'화제의 선수',paperPick(rng,[`이 주의 선수: ${hn(star)}`,`${hn(star)}, 평균 평점 ${avg(star).toFixed(1)}의 에이스`]),`${state.roster[star].apps}경기 ${state.roster[star].kills}처치, 경기 MVP ${state.roster[star].mvp}회. 데일리가 뽑은 화제의 선수.`,{hero:star});
@@ -1763,10 +1778,11 @@ function dailyPaper(state){
   const past=(state.history||[]).find(x=>x.season===state.season-1&&Math.abs(x.day-state.day)<=1);
   if(past)add(2.2,'1년 전 오늘',`1년 전 오늘: ${past.full}`,`지난 학기 이맘때 아스트라는 ${josa(past.opponent,'을','를')} 상대로 ${past.score?.join(':')} ${past.win?'승리':past.draw?'무승부':'패배'}를 기록했다.`,{team:past.opp});
   // 머리기사 1개 + 서로 다른 종류 위주로 최대 9개
-  A.sort((a,b)=>b.p-a.p);const out=[],cnt={};for(const a of A){if(out.length>=9)break;if(cnt[a.tag])continue;out.push(a);cnt[a.tag]=1;}for(const a of A){if(out.length>=9)break;if(out.includes(a)||cnt[a.tag]>=2)continue;out.push(a);cnt[a.tag]++;}out.sort((a,b)=>b.p-a.p);
+  A.sort((a,b)=>b.p-a.p);const FILLER=new Set(['캠퍼스','운세','팬 레터','날씨','전술','재정','기록실','스카우트','인연','리그 소식','명예의 전당','1년 전 오늘','훈련장','화제의 선수']),out=[],cnt={};let filler=0;
+  for(const a of A){if(out.length>=6)break;if(cnt[a.tag])continue;if(FILLER.has(a.tag)){if(filler>=1)continue;filler++;}out.push(a);cnt[a.tag]=1;}out.sort((a,b)=>b.p-a.p);
   if(!out.length)out.push({tag:'아카데미',title:'오늘도 평화로운 아스트라',body:'큰 소식 없는 하루. 훈련장에는 땀방울만 가득하다.'});
   return {season:state.season,day:state.day,no:(state.paper?.no||0)+1,seen:false,articles:out.map(({p,...a})=>a)};}
-function rest(state){restDay(state);state.lastAuto=null;state.lastClass=timetableDay(state);quarterTick(state);streakScoop(state);awakenScoop(state);publishPaper(state);}
+function rest(state){restDay(state);state.lastAuto=null;state.lastClass=timetableDay(state);quarterTick(state);streakScoop(state);awakenScoop(state);powerScoop(state);publishPaper(state);}
 function restDay(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
 // 하루를 넘기고, 인연 이야기나 아카데미 이벤트가 생길 수 있습니다.
 function advanceDay(state,rng=Math.random){
