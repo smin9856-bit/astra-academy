@@ -939,6 +939,17 @@ body[data-season="spring"] .match-preview{box-shadow:inset 0 -60px 60px -30px #f
 .off-poor{color:#ff9f9f;font-size:11px}
 @media(max-width:740px){.offseason .off-grid{grid-template-columns:1fr 1fr}}
 
+/* 여름 · 겨울 휴가 */
+body[data-season="summer"] #season-fx i{color:#fff2a0;text-shadow:0 0 6px #ffe08a;opacity:.6}
+body[data-season="summer"] .feature-card::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(ellipse at 80% -10%,#fff6c866,transparent 50%),linear-gradient(180deg,#fff2a018,transparent 60%,#7fd06a33)}
+body[data-season="summer"] .match-preview{box-shadow:inset 0 -60px 60px -30px #9fe08a55}
+.sc-summer{--sc:#ffe08a}
+.offseason.off-winter{position:relative;overflow:hidden}
+.off-snow{position:absolute;inset:0;pointer-events:none;z-index:0}.off-snow i{position:absolute;top:-20px;left:var(--x);font-style:normal;color:#eaf2ff;opacity:.5;animation:scFall var(--t) linear var(--d) infinite}
+.offseason>*:not(.off-snow){position:relative;z-index:1}
+.off-badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:#cfe3ff;color:#16304f}
+.off-winter .off-vacation{box-shadow:0 0 0 2px #cfe3ff88,0 0 18px #cfe3ff44}
+
 </style>
 </head>
 <body>
@@ -2178,8 +2189,8 @@ const ROUNDS=14, HALF=7, PROMOTE=2, HOME_EDGE=.04, LEAGUE_FORMAT=2;
 // 한 시즌 22경기: 리그 14 (L) + 아스트라 컵 5 (C) + 루키 컵 3 (R). 이전 형식(18경기) 시즌은 OLD_SCHEDULE로 끝까지 진행합니다.
 // 한 시즌: 리그 14라운드(사이사이 루키 컵 3라운드) → 시즌의 마지막은 아스트라 컵(예선부터 결승까지 5라운드)
 
-// ── 1년 3시즌: 봄 · 가을 · 겨울. 시즌 사이에는 비시즌(여름 · 늦가을 · 늦겨울)이 있습니다 ──
-const SEASON_KINDS=[{key:'spring',name:'봄',icon:'🌸',off:'여름'},{key:'autumn',name:'가을',icon:'🍂',off:'초겨울'},{key:'winter',name:'겨울',icon:'❄️',off:'이른 봄'}];
+// ── 1년 3시즌: 봄 · 여름 · 가을. 시즌 사이는 비시즌이고, 가을 시즌 뒤의 겨울은 휴가 시즌입니다 ──
+const SEASON_KINDS=[{key:'spring',name:'봄',icon:'🌸',off:'늦봄'},{key:'summer',name:'여름',icon:'☀️',off:'늦여름'},{key:'autumn',name:'가을',icon:'🍂',off:'겨울 휴가',winter:true}];
 const seasonKind=n=>SEASON_KINDS[(((n||1)-1)%3+3)%3];
 const seasonYear=n=>Math.ceil((n||1)/3);
 const seasonLabel=n=>`${seasonYear(n)}년차 ${seasonKind(n).name} 시즌`;
@@ -2192,13 +2203,13 @@ const OFFSEASON=[
 const offseasonCost=(state,id)=>id==='abroad'?2500+Math.max(0,Object.keys(state.roster).length-8)*150:0;
 function chooseOffseason(state,id){const o=state.offseason,def=OFFSEASON.find(x=>x.id===id);if(!o||o.done||!def)return false;const cost=offseasonCost(state,id);if(state.gold<cost)return {error:'gold',cost};
  if(cost){state.gold-=cost;book(state,-cost,'전지훈련');}const R=Object.values(state.roster),bump=(p,k,v)=>{p[k]=Math.max(0,Math.min(100,(p[k]||0)+v));};let gold=0;
- if(id==='vacation')R.forEach(p=>{p.fatigue=0;bump(p,'morale',20);bump(p,'affinity',5);if(p.injury){p.injury.days-=7;if(p.injury.days<=0)p.injury=null;}});
+ const winter=!!seasonKind(o.from).winter;if(id==='vacation')R.forEach(p=>{p.fatigue=0;bump(p,'morale',winter?30:20);bump(p,'affinity',winter?10:5);if(winter&&p.injury)p.injury.days-=7;if(p.injury){p.injury.days-=7;if(p.injury.days<=0)p.injury=null;}});
  if(id==='camp'){R.forEach(p=>{p.xp+=150;p.attack+=3;p.defense+=3;bump(p,'fatigue',15);bump(p,'morale',-5);levelUp(p);});const d=state.teamColor||ensureTimetable(state).drill||TEAM_DRILLS[0].id,v=state.teamDrills?.[d];if(v&&v.lv<TEAM_DRILL_MAX){v.xp+=3;while(v.lv<TEAM_DRILL_MAX&&v.xp>=drillNeed(v.lv)){v.xp-=drillNeed(v.lv);v.lv++;}}}
  if(id==='abroad')R.forEach(p=>{p.xp+=250;p.attack+=6;p.defense+=6;p.speed+=6;bump(p,'fatigue',25);levelUp(p);});
  if(id==='revenue'){gold=1500+(state.fame??0)*40;state.gold+=gold;book(state,gold,'비시즌 수익 활동');changeFame(state,4,'비시즌 팬 행사');R.forEach(p=>{bump(p,'fatigue',10);bump(p,'morale',-8);});}
  if(id==='vacation')R.forEach(p=>{p.morale=Math.max(p.morale,95);});
  state.preseason={kind:id,season:state.season,untilMatch:6,power:id==='camp'?.04:id==='abroad'?.06:0,goldBonus:id==='revenue'?.1:0};
- o.done=true;o.choice=id;addNews(state,'비시즌',`${seasonKind(o.from).off} 비시즌: ${def.name}${gold?` (+${gold.toLocaleString()} G)`:''}${cost?` (−${cost.toLocaleString()} G)`:''}`);return {id,gold,cost};}
+ o.done=true;o.choice=id;addNews(state,'비시즌',`${seasonKind(o.from).off}${winter?'':' 비시즌'}: ${def.name}${winter&&id==='vacation'?' (겨울 휴가 보너스)':''}${gold?` (+${gold.toLocaleString()} G)`:''}${cost?` (−${cost.toLocaleString()} G)`:''}`);return {id,gold,cost};}
 const SCHEDULE=['L','L','L','L','R','L','L','L','L','R','L','L','L','R','L','L','L','C','C','C','C','C'];
 const OLD_SCHEDULE=['L','L','L','C','L','L','L','L','C','L','L','L','C','L','L','L','C','L'];
 // 아스트라 컵: 24개 학교. 2·3부 16팀이 예선을 치르고, 이긴 8팀이 1부 8팀과 16강에서 만납니다.
@@ -4188,9 +4199,13 @@ function seasonGround(ctx,w,h,kind){if(!kind)return;const px=(x,y,s,c)=>{ctx.fil
   for(const [y0,y1,n] of [[.13,.24,520],[.74,.95,700]])for(let i=0;i<n;i++){const x=seasonNoise(i*3+y0*7)*w,y=h*(y0+seasonNoise(i*5+y1)*(y1-y0)),s=Math.round((2+seasonNoise(i+3)*2)*k)*2;px(x,y,s,cols[i%5]);if(i%4===0)px(x+s,y+s/2,2*k,'#7a2e12');}
   // 바닥으로 흩어진 낙엽과 가장자리에 모인 낙엽 무더기
   for(let i=0;i<260;i++){const edge=i%3===0,x=edge?(seasonNoise(i)<.5?seasonNoise(i+1)*w*.12:w-seasonNoise(i+1)*w*.12):seasonNoise(i+11)*w,y=h*(.25+seasonNoise(i+21)*.48);px(x,y,Math.round((2+seasonNoise(i+5)*2)*k)*2,cols[(i+2)%5]);}
+ }else if(kind==='summer'){ctx.fillStyle='#fff2a014';ctx.fillRect(0,0,w,h);
+  for(let i=0;i<30;i++){const x=seasonNoise(i+70)*w,y=h*(.26+seasonNoise(i+90)*.46),r=(14+seasonNoise(i+5)*26)*k;ctx.fillStyle='#fff6c81c';ctx.beginPath();ctx.ellipse(x,y,r,r*.4,0,0,Math.PI*2);ctx.fill();}
+  for(let i=0;i<180;i++){const top=i%2,x=seasonNoise(i*9)*w,y=top?h*(.13+seasonNoise(i)*.1):h*(.75+seasonNoise(i)*.18);px(x,y,Math.round(2*k)*2,['#fff27a','#ffffff','#ffb3d0','#9fd8ff'][i%4]);if(i%3===0)px(x,y+3*k,2*k,'#3f8a2a');}
  }else if(kind==='spring'){ctx.fillStyle='#ffd6e60f';ctx.fillRect(0,0,w,h);for(let i=0;i<220;i++){const band=i%3,x=seasonNoise(i*7)*w,y=band===0?h*(.13+seasonNoise(i)*.11):band===1?h*(.74+seasonNoise(i)*.2):h*(.25+seasonNoise(i+3)*.48);px(x,y,Math.round(2*k)*2,i%2?'#ffc2d8':'#ffe3ee');if(i%5===0)px(x+2*k,y-2*k,2*k,'#ff9fc0');}}
  ctx.restore();}
 function seasonSky(ctx,w,h,kind,clock){if(!kind)return;const k=w/920;ctx.save();const n=kind==='winter'?70:kind==='autumn'?26:30;
+ if(kind==='summer'){for(let i=0;i<34;i++){const t=(clock*(.03+seasonNoise(i)*.03)+seasonNoise(i+4))%1,x=seasonNoise(i+8)*w+Math.sin(clock*.9+i)*18*k,y=h*(1-t),tw=Math.sin(clock*5+i*1.7)>.2;if(!tw)continue;ctx.fillStyle=i%3?'#fff6b0':'#ffffff';const s2=(i%4===0?4:2)*k;ctx.fillRect(Math.round(x),Math.round(y),s2,s2);}ctx.restore();return;}
  for(let i=0;i<n;i++){const sp=kind==='winter'?.08+seasonNoise(i)*.06:.05+seasonNoise(i)*.04,t=(clock*sp+seasonNoise(i+4))%1,x=(seasonNoise(i+8)*w+Math.sin(clock*(.8+seasonNoise(i))+i)*24*k+(kind==='autumn'?t*60*k:0))%w,y=t*h;
   if(kind==='winter'){const s=seasonNoise(i+2)>.7?4:2;ctx.fillStyle=s>2?'#ffffff':'#eaf2ff';ctx.fillRect(Math.round(x),Math.round(y),s*k,s*k);}
   else if(kind==='autumn'){const c=['#e0782e','#f0b03c','#c8551f'][i%3],flip=Math.sin(clock*3+i)>0;ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),(flip?6:4)*k,(flip?3:5)*k);ctx.fillStyle='#7a2e12';ctx.fillRect(Math.round(x),Math.round(y),2*k,2*k);}
@@ -4704,17 +4719,17 @@ async function summonCinematic(results,done){
 
 // 계절 연출: 화면 전체에 계절 입자(봄 꽃잎 · 가을 낙엽 · 겨울 눈)를 띄우고, 시즌이 바뀌면 큰 계절 카드를 보여 줍니다.
 // 비시즌에는 휴가 · 합숙 · 전지훈련 · 수익 활동 중 하나를 고릅니다.
-const SEASON_GLYPH={spring:['🌸','✿','❀'],autumn:['🍂','🍁','🍂'],winter:['❄','❅','❆']};
+const SEASON_GLYPH={spring:['🌸','✿','❀'],summer:['✦','🌿','✧'],autumn:['🍂','🍁','🍂'],winter:['❄','❅','❆']};
 function seasonFx(){const kind=seasonKind(state.season).key;document.body.dataset.season=kind;let fx=document.getElementById('season-fx');
  if(!fx){fx=document.createElement('div');fx.id='season-fx';fx.setAttribute('aria-hidden','true');document.body.appendChild(fx);}
  if(fx.dataset.kind===kind)return;fx.dataset.kind=kind;const g=SEASON_GLYPH[kind];
  fx.innerHTML=Array.from({length:22},(_,i)=>`<i style="--x:${(i*47)%100}%;--d:${(i*.83)%9}s;--t:${9+(i%5)*2.4}s;--s:${.7+(i%4)*.18};--sway:${(i%2?1:-1)*(20+(i%3)*14)}px">${g[i%3]}</i>`).join('');}
 function showSeasonChange(n){const k=seasonKind(n),layer=document.createElement('section');layer.className=`season-change sc-${k.key}`;layer.setAttribute('role','status');
- const g=SEASON_GLYPH[k.key];layer.innerHTML=`<div class="sc-fall">${Array.from({length:40},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${(i%10)*.12}s;--t:${2.2+(i%5)*.35}s">${g[i%3]}</i>`).join('')}</div><div class="sc-card"><span class="sc-icon">${k.icon}</span><small>NEW SEASON</small><h2>${seasonLabel(n)}</h2><p>${k.key==='spring'?'꽃잎이 흩날리는 새 시즌이 시작됐어요.':k.key==='autumn'?'낙엽이 쌓이는 경기장, 가을 시즌 개막!':'하얀 눈이 덮인 경기장, 겨울 시즌 개막!'}</p></div>`;
+ const g=SEASON_GLYPH[k.key];layer.innerHTML=`<div class="sc-fall">${Array.from({length:40},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${(i%10)*.12}s;--t:${2.2+(i%5)*.35}s">${g[i%3]}</i>`).join('')}</div><div class="sc-card"><span class="sc-icon">${k.icon}</span><small>NEW SEASON</small><h2>${seasonLabel(n)}</h2><p>${k.key==='spring'?(n>1?'겨울 휴가를 마치고, 꽃잎이 흩날리는 봄 시즌 개막!':'꽃잎이 흩날리는 첫 시즌이 시작됐어요.'):k.key==='summer'?'뜨거운 햇살 아래, 여름 시즌 개막!':'낙엽이 쌓이는 경기장, 가을 시즌 개막!'}</p></div>`;
  document.body.appendChild(layer);const close=()=>{layer.classList.add('out');setTimeout(()=>layer.remove(),400);};layer.addEventListener('pointerdown',close);setTimeout(close,2800);}
-function offseasonModal(){const o=state.offseason;if(!o||o.done)return false;const prev=seasonKind(o.from),sum=state.seasonSummary,next=seasonKind(state.season);
- showModal(`<div class="offseason"><span class="eyebrow">OFF-SEASON · ${prev.off} 비시즌</span><h2>${seasonLabel(o.from)} 종료 · 비시즌</h2><p class="modal-intro">${sum?`지난 시즌 ${sum.division}부 ${sum.rank}위 (${sum.w}승 ${sum.d}무 ${sum.l}패).`:''} 다음은 ${next.icon} <b>${seasonLabel(state.season)}</b>. 비시즌 동안 무엇을 할지 하나를 골라 주세요.</p>
- <div class="off-grid">${OFFSEASON.map(x=>{const cost=offseasonCost(state,x.id),poor=state.gold<cost;return `<button class="off-card off-${x.id}" data-action="offseason" data-id="${x.id}" ${poor?'disabled':''}><span class="off-icon">${x.icon}</span><b>${x.name}</b><em>${cost?`${fmt(cost)} G`:'무료'}</em><dl><dt>지금</dt><dd>${x.now}</dd><dt>다음 시즌</dt><dd>${x.next}</dd></dl>${poor?'<small class="off-poor">골드가 부족해요</small>':''}</button>`;}).join('')}</div></div>`,true);return true;}
+function offseasonModal(){const o=state.offseason;if(!o||o.done)return false;const prev=seasonKind(o.from),sum=state.seasonSummary,next=seasonKind(state.season),winter=!!prev.winter;
+ showModal(`<div class="offseason ${winter?'off-winter':''}">${winter?`<div class="off-snow" aria-hidden="true">${Array.from({length:26},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${(i%9)*.5}s;--t:${5+(i%4)}s">❄</i>`).join('')}</div>`:''}<span class="eyebrow">${winter?'WINTER BREAK · ❄ 겨울 휴가 시즌':`OFF-SEASON · ${prev.off} 비시즌`}</span><h2>${seasonLabel(o.from)} 종료 · ${winter?'겨울 휴가 시즌':'비시즌'}</h2><p class="modal-intro">${sum?`지난 시즌 ${sum.division}부 ${sum.rank}위 (${sum.w}승 ${sum.d}무 ${sum.l}패).`:''} 다음은 ${next.icon} <b>${seasonLabel(state.season)}</b>. 비시즌 동안 무엇을 할지 하나를 골라 주세요.</p>
+ <div class="off-grid">${OFFSEASON.map(x=>{const cost=offseasonCost(state,x.id),poor=state.gold<cost;return `<button class="off-card off-${x.id}" data-action="offseason" data-id="${x.id}" ${poor?'disabled':''}>${winter&&x.id==='vacation'?'<span class="off-badge">❄ 겨울 휴가 보너스</span>':''}<span class="off-icon">${x.icon}</span><b>${x.name}</b><em>${cost?`${fmt(cost)} G`:'무료'}</em><dl><dt>지금</dt><dd>${winter&&x.id==='vacation'?'피로 0 · 부상 14일 회복 · 사기 +30 · 호감도 +10':x.now}</dd><dt>다음 시즌</dt><dd>${x.next}</dd></dl>${poor?'<small class="off-poor">골드가 부족해요</small>':''}</button>`;}).join('')}</div></div>`,true);return true;}
 
 
 

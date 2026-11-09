@@ -1229,8 +1229,8 @@ const ROUNDS=14, HALF=7, PROMOTE=2, HOME_EDGE=.04, LEAGUE_FORMAT=2;
 // 한 시즌 22경기: 리그 14 (L) + 아스트라 컵 5 (C) + 루키 컵 3 (R). 이전 형식(18경기) 시즌은 OLD_SCHEDULE로 끝까지 진행합니다.
 // 한 시즌: 리그 14라운드(사이사이 루키 컵 3라운드) → 시즌의 마지막은 아스트라 컵(예선부터 결승까지 5라운드)
 
-// ── 1년 3시즌: 봄 · 가을 · 겨울. 시즌 사이에는 비시즌(여름 · 늦가을 · 늦겨울)이 있습니다 ──
-const SEASON_KINDS=[{key:'spring',name:'봄',icon:'🌸',off:'여름'},{key:'autumn',name:'가을',icon:'🍂',off:'초겨울'},{key:'winter',name:'겨울',icon:'❄️',off:'이른 봄'}];
+// ── 1년 3시즌: 봄 · 여름 · 가을. 시즌 사이는 비시즌이고, 가을 시즌 뒤의 겨울은 휴가 시즌입니다 ──
+const SEASON_KINDS=[{key:'spring',name:'봄',icon:'🌸',off:'늦봄'},{key:'summer',name:'여름',icon:'☀️',off:'늦여름'},{key:'autumn',name:'가을',icon:'🍂',off:'겨울 휴가',winter:true}];
 const seasonKind=n=>SEASON_KINDS[(((n||1)-1)%3+3)%3];
 const seasonYear=n=>Math.ceil((n||1)/3);
 const seasonLabel=n=>`${seasonYear(n)}년차 ${seasonKind(n).name} 시즌`;
@@ -1243,13 +1243,13 @@ const OFFSEASON=[
 const offseasonCost=(state,id)=>id==='abroad'?2500+Math.max(0,Object.keys(state.roster).length-8)*150:0;
 function chooseOffseason(state,id){const o=state.offseason,def=OFFSEASON.find(x=>x.id===id);if(!o||o.done||!def)return false;const cost=offseasonCost(state,id);if(state.gold<cost)return {error:'gold',cost};
  if(cost){state.gold-=cost;book(state,-cost,'전지훈련');}const R=Object.values(state.roster),bump=(p,k,v)=>{p[k]=Math.max(0,Math.min(100,(p[k]||0)+v));};let gold=0;
- if(id==='vacation')R.forEach(p=>{p.fatigue=0;bump(p,'morale',20);bump(p,'affinity',5);if(p.injury){p.injury.days-=7;if(p.injury.days<=0)p.injury=null;}});
+ const winter=!!seasonKind(o.from).winter;if(id==='vacation')R.forEach(p=>{p.fatigue=0;bump(p,'morale',winter?30:20);bump(p,'affinity',winter?10:5);if(winter&&p.injury)p.injury.days-=7;if(p.injury){p.injury.days-=7;if(p.injury.days<=0)p.injury=null;}});
  if(id==='camp'){R.forEach(p=>{p.xp+=150;p.attack+=3;p.defense+=3;bump(p,'fatigue',15);bump(p,'morale',-5);levelUp(p);});const d=state.teamColor||ensureTimetable(state).drill||TEAM_DRILLS[0].id,v=state.teamDrills?.[d];if(v&&v.lv<TEAM_DRILL_MAX){v.xp+=3;while(v.lv<TEAM_DRILL_MAX&&v.xp>=drillNeed(v.lv)){v.xp-=drillNeed(v.lv);v.lv++;}}}
  if(id==='abroad')R.forEach(p=>{p.xp+=250;p.attack+=6;p.defense+=6;p.speed+=6;bump(p,'fatigue',25);levelUp(p);});
  if(id==='revenue'){gold=1500+(state.fame??0)*40;state.gold+=gold;book(state,gold,'비시즌 수익 활동');changeFame(state,4,'비시즌 팬 행사');R.forEach(p=>{bump(p,'fatigue',10);bump(p,'morale',-8);});}
  if(id==='vacation')R.forEach(p=>{p.morale=Math.max(p.morale,95);});
  state.preseason={kind:id,season:state.season,untilMatch:6,power:id==='camp'?.04:id==='abroad'?.06:0,goldBonus:id==='revenue'?.1:0};
- o.done=true;o.choice=id;addNews(state,'비시즌',`${seasonKind(o.from).off} 비시즌: ${def.name}${gold?` (+${gold.toLocaleString()} G)`:''}${cost?` (−${cost.toLocaleString()} G)`:''}`);return {id,gold,cost};}
+ o.done=true;o.choice=id;addNews(state,'비시즌',`${seasonKind(o.from).off}${winter?'':' 비시즌'}: ${def.name}${winter&&id==='vacation'?' (겨울 휴가 보너스)':''}${gold?` (+${gold.toLocaleString()} G)`:''}${cost?` (−${cost.toLocaleString()} G)`:''}`);return {id,gold,cost};}
 const SCHEDULE=['L','L','L','L','R','L','L','L','L','R','L','L','L','R','L','L','L','C','C','C','C','C'];
 const OLD_SCHEDULE=['L','L','L','C','L','L','L','L','C','L','L','L','C','L','L','L','C','L'];
 // 아스트라 컵: 24개 학교. 2·3부 16팀이 예선을 치르고, 이긴 8팀이 1부 8팀과 16강에서 만납니다.
