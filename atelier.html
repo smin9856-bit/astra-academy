@@ -1168,7 +1168,7 @@ function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, s
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
-  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.tactics.captain??=null; ensureFinance(s); s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.lineups=Array.from({length:LINEUP_SLOTS},(_,i)=>s.lineups?.[i]||null); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; ensureTimetable(s); Object.values(s.roster).forEach(p=>{p.auto??={on:false,type:'balanced',pri:3};p.auto.pri=autoRank(p.auto.pri);});
+  s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.tactics.captain??=null; ensureFinance(s); s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.lineups=Array.from({length:LINEUP_SLOTS},(_,i)=>s.lineups?.[i]||null); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; ensureTimetable(s); s.stadium??=0; Object.values(s.roster).forEach(p=>{p.auto??={on:false,type:'balanced',pri:3};p.auto.pri=autoRank(p.auto.pri);});
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
   s.board??={confidence:60,budget:300,lastChance:false,goal:null};
   if(!s.divisions){
@@ -1203,7 +1203,7 @@ function unitBonus(state,id){
   const p=state.roster[id],b={hp:0,atk:0,def:0,speed:0,crit:0,steal:0,heal:0,haste:0,aspd:0,guts:false};if(!p)return b;
   const add=mod=>{for(const k in mod){if(k==='guts')b.guts=true;else b[k]+=mod[k];}};
   (p.traits||[]).forEach(t=>add(traitDef(t)?.mod||{}));
-  Object.values(p.gear||{}).forEach(uid=>{const it=state.items?.find(i=>i.uid===uid);if(it)add(itemDef(it.id).mod);});
+  Object.values(p.gear||{}).forEach(uid=>{const it=state.items?.find(i=>i.uid===uid);if(it)add(scaleMod(itemDef(it.id).mod,enhanceMult(it.lv)));});
   if(state.squad.includes(id)){const cap=captainOf(state);if(cap)add(captainAura(cap).mod);}
   if(state.squad.includes(id))activeChemistry(state).filter(c=>c.pair.includes(id)).forEach(c=>{const m=(state.duos?.[duoKey(c)]?2:1)*(1+.1*teamColorLevel(state,'teamwork'));for(const k in c.mod)b[k]+=c.mod[k]*m;});
   if(p.injury){const pen=p.injury.pen;b.hp-=pen;b.atk-=pen;b.def-=pen;b.speed-=Math.round(pen*30);}
@@ -1567,6 +1567,29 @@ function timetableDay(state){const T=ensureTimetable(state),kind=dayKind(state),
   if(sid==='analysis')state.prep={matchDay:state.matchDay,bonus:Math.round(.03*prof*1000)/1000};
   ids.forEach(id=>{const p=state.roster[id],f=S.fat<0?S.fat*prof:S.fat*I.fat;p.fatigue=Math.max(0,Math.min(100,Math.round(p.fatigue+f)));p.xp+=Math.round((S.stat?10:6)*I.grow);levelUp(p);if(sid==='recovery')p.morale=clamp100((p.morale??70)+1);});}
  return out;}
+
+// ══ 골드 사용처 ══
+// ① 개인 특훈: 시간표 수업과 별개로, 비싼 1:1 지도를 하루 한 번 받을 수 있어요. 수업 한 번의 약 5배를 한 번에 올립니다.
+const SPECIAL_MULT=3.2,SPECIAL_FATIGUE=22,SPECIAL_STAT_FACULTY={attack:'sword',defense:'guard',speed:'agility'};
+const specialCost=p=>Math.round((500+(p?.level||1)*80)/10)*10;
+function specialGain(state,p,type){return Math.max(3,Math.round(trainGain(p,type,state.facilities?.training||0)*SPECIAL_MULT*facultyBonus(state,SPECIAL_STAT_FACULTY[type])));}
+function specialTrain(state,id,type){const p=state.roster[id];if(!p||!SPECIAL_STAT_FACULTY[type]||p.injury||p.specialDay===state.day||p.fatigue>=80)return false;const cost=specialCost(p);if(state.gold<cost)return {error:'gold',cost};
+ const gain=specialGain(state,p,type);state.gold-=cost;book(state,-cost,'개인 특훈');p[type]+=gain;p.xp+=120+(state.facilities?.training||0)*20;p.fatigue=Math.min(100,p.fatigue+SPECIAL_FATIGUE);p.specialDay=state.day;levelUp(p);return {gain,cost,type};}
+// ② 장비 강화: +1 ~ +10. +5까지는 반드시 성공, 그 뒤로는 확률이 낮아지고 실패해도 단계는 떨어지지 않아요(골드만 사라짐). 한 단계마다 장비 효과 +8%.
+const ENHANCE_MAX=10,enhanceCost=lv=>Math.round(250*((lv||0)+1)**1.45/10)*10,enhanceRate=lv=>(lv||0)<5?1:[.8,.7,.6,.5,.4][(lv||0)-5],enhanceMult=lv=>1+.08*(lv||0);
+const itemLabel=it=>`${itemDef(it.id).name}${it.lv?` +${it.lv}`:''}`;
+function enhanceItem(state,uid,rng=Math.random){const it=state.items?.find(i=>i.uid===uid);if(!it||(it.lv||0)>=ENHANCE_MAX)return false;const lv=it.lv||0,cost=enhanceCost(lv);if(state.gold<cost)return {error:'gold',cost};
+ state.gold-=cost;book(state,-cost,'장비 강화');const ok=rng()<enhanceRate(lv);if(ok){it.lv=lv+1;if(it.lv>=7)addNews(state,'장비',`${itemLabel(it)} 강화 성공!`);}return {ok,lv:it.lv||0,cost};}
+const scaleMod=(mod,m)=>Object.fromEntries(Object.entries(mod).map(([k,v])=>[k,typeof v==='number'&&v>0?v*m:v]));
+// ③ 선물: 학생마다 하루 한 번. 취향에 맞는 선물이면 호감도가 크게 오릅니다(취향은 프로필의 '좋아하는 것'에 힌트가 있어요).
+const GIFTS=[{id:'tea',name:'고급 홍차 세트',icon:'🍵',price:300,kw:['홍차','우유','차 ']},{id:'sweets',name:'수제 디저트',icon:'🍰',price:350,kw:['디저트','케이크','떡','간식','과자','꿀','초콜릿','소르베']},{id:'book',name:'희귀 서적',icon:'📚',price:500,kw:['책','서류','성도','지도','기록','공부']},{id:'flower',name:'꽃다발',icon:'💐',price:400,kw:['꽃','정원','장미','식물','풀','나무']},{id:'whetstone',name:'명품 숫돌',icon:'⚔',price:600,kw:['검','대련','무기','순찰','단련','결투']},{id:'music',name:'오르골',icon:'🎵',price:700,kw:['음악','노래','악기','무대','종','공연']},{id:'gem',name:'원석 브로치',icon:'💎',price:1200,kw:['보석','반짝','광석','별','수정']},{id:'feast',name:'맛집 식사권',icon:'🍖',price:800,kw:['맛집','고기','요리','식당','매운','떡꼬치','먹']}];
+function favoriteGift(id){const likes=String(HERO_LORE[id]?.likes||'');const hit=GIFTS.find(g=>g.kw.some(k=>likes.includes(k)));return (hit||GIFTS[hash('gift-'+id)%GIFTS.length]).id;}
+function giveGift(state,id,gid){const p=state.roster[id],g=GIFTS.find(x=>x.id===gid);if(!p||!g||p.giftDay===state.day)return false;if(state.gold<g.price)return {error:'gold',cost:g.price};
+ state.gold-=g.price;book(state,-g.price,'선물');const fav=favoriteGift(id)===gid,aff=fav?18:Math.round(4+g.price/250);p.affinity=Math.min(100,(p.affinity||0)+aff);p.morale=clamp100((p.morale??70)+(fav?12:5));p.giftDay=state.day;if(fav)p.giftFound=true;return {fav,aff,cost:g.price};}
+// ④ 홈구장: 단계마다 홈 경기 능력 보정 +0.8%p · 홈 리그 경기 보상 골드 +8% · 확장 때 명성 +2
+const STADIUM=[{name:'목조 관중석',cost:1500},{name:'석조 스탠드',cost:3000},{name:'응원단석',cost:5000},{name:'대형 전광판',cost:8000},{name:'왕립 돔 경기장',cost:12000}];
+const stadiumEdge=state=>.008*(state?.stadium||0),stadiumGold=state=>.08*(state?.stadium||0);
+function upgradeStadium(state){const lv=state.stadium||0,next=STADIUM[lv];if(!next||state.gold<next.cost)return false;state.gold-=next.cost;book(state,-next.cost,'홈구장');state.stadium=lv+1;changeFame(state,2,'홈구장 확장');addNews(state,'홈구장',`${next.name} 완공 · 홈 경기 보정 +${(stadiumEdge(state)*100).toFixed(1)}%p`);return state.stadium;}
 function autoTrainDay(state){const cfg=state.autoTrain;if(!cfg?.on)return null;const out={day:state.day,trained:[],tired:[],broke:[],team:null,spent:0},g0=state.gold;
   autoQueue(state).forEach((id,i)=>{const p=state.roster[id];if(p.trained===state.day)return;if(p.fatigue>=cfg.fatigueCap){out.tired.push(id);return;}if(state.gold-TRAIN_COST<cfg.reserve){out.broke.push(id);return;}const type=p.auto.type==='balanced'?['attack','defense','speed'][(state.day+i)%3]:p.auto.type;if(train(state,id,type))out.trained.push({id,type});});
   if(cfg.team&&state.teamTrained!==state.day&&state.gold-TEAM_TRAIN_COST>=cfg.reserve)out.team=teamTrain(state,cfg.team)||null;
@@ -1894,7 +1917,7 @@ class Battle {
     if(!teams){const o=currentOpponent(state),fx=currentFixture(state);teams=[teamFromState(state),opponentTeam(state,o)];opts.home=fx?.type==='league'?(fx.pair[0]==='AST'?0:1):null;}
     this.home=opts.home??null;
     this.teams=teams.map(t=>t.info);this.opponent=teams[1].info;this.teamColors=teams.map(t=>t.color||null);this.teamTactics=teams.map(t=>({...t.tactics}));this.tactics=this.teamTactics[0];
-    teams.forEach((tm,team)=>tm.members.forEach((s,i)=>{const a=arenaPosition(tm.positions[i]),edge=this.home===team?1+HOME_EDGE:1;this.addUnit({...s,atk:Math.round(s.atk*edge),def:Math.round(s.def*edge)},team,team?920-a.x:a.x,a.y,team+'-'+i);}));
+    teams.forEach((tm,team)=>tm.members.forEach((s,i)=>{const a=arenaPosition(tm.positions[i]),edge=this.home===team?1+HOME_EDGE+(team===0?stadiumEdge(state):0):1;this.addUnit({...s,atk:Math.round(s.atk*edge),def:Math.round(s.def*edge)},team,team?920-a.x:a.x,a.y,team+'-'+i);}));
     // 닉스 패시브(월영의 베일): 처음 받는 공격 3회 무효
     this.units.forEach(u=>{if(u.passiveType==='reaper')u.veil=3;});
     [0,1].forEach(team=>{if(this.teamTactics[team].stance==='guard')this.setGuard(team);});
@@ -2095,7 +2118,7 @@ class Battle {
 }
 function settle(state,battle){
   if(!battle.done||battle.settled)return false;battle.settled=true;const mvp=rateBattle(battle);
-  const fx=currentFixture(state),type=fx?.type||'league',win=battle.winner===0,draw=battle.winner===2,fin=1+(state.facilities.finance||0)*.15+(state.preseason?.season===state.season?state.preseason.goldBonus||0:0),med=state.facilities.medical||0;
+  const fx=currentFixture(state),type=fx?.type||'league',win=battle.winner===0,draw=battle.winner===2,fin=1+(state.facilities.finance||0)*.15+(fx?.type==='league'&&fx.pair?.[0]==='AST'?stadiumGold(state):0)+(state.preseason?.season===state.season?state.preseason.goldBonus||0:0),med=state.facilities.medical||0;
   const score=[kills(battle,0),kills(battle,1)],opp=fx?.opp||battle.opponent.short,round=state.match;
   const cupWin=type==='cup'&&(win||(draw&&random(hash(`${fx.letter==='R'?'rookie':'cup'}-${state.season}-${fx.stage}-AST-${opp}`))()<.5));
   const gold=Math.round(((type==='cup'?(cupWin?CUPS[fx.letter].win:CUPS[fx.letter].lose):win?650:draw?400:300))*fin)+state.board.budget,gems=win||cupWin?180:100;state.gold+=gold;state.gems+=gems;book(state,gold,'경기 수입');matchFame(state,type==='cup'?cupWin:win,type!=='cup'&&draw);
