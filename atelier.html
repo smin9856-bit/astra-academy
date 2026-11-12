@@ -1163,10 +1163,15 @@ function formationPositions(state) {
 const LINE_SPLIT=.5;
 const lineOf=p=>clamp01(p?.x)>=LINE_SPLIT?'front':'back';
 function arenaPosition(p) { return { x:Math.round(70+clamp01(p.x)*350), y:Math.round(105+clamp01(p.y)*210) }; }
-function freshState() { const s={ version:1, day:1, season:1, gold:3200, gems:3600, pity:0, squad:['aria','rin','luna','sylvie','noel'], roster:Object.fromEntries(CHARACTERS.slice(0,5).map(c=>[c.id,newProgress()])), tactics:{...DEFAULT_TACTICS}, history:[], match:0, division:2, fame:0 }; return upgradeState(s); }
+// 첫 영입은 전체 영웅 풀에서 동일 확률로, 중복 없이 다섯 명을 뽑습니다.
+function drawStarterHeroes(rng=Math.random){return shuffle(CHARACTERS.map(c=>c.id),rng).slice(0,5);}
+function freshState(rng=Math.random) { const squad=drawStarterHeroes(rng);const s={ version:1, day:1, season:1, gold:3200, gems:3600, pity:0, squad, roster:Object.fromEntries(squad.map(id=>[id,newProgress()])), starterRecruit:{ids:[...squad],seen:false}, tactics:{...DEFAULT_TACTICS}, history:[], match:0, division:2, fame:0 }; return upgradeState(s); }
 function newProgress(){ return {level:1, xp:0, fatigue:0, attack:0, defense:0, speed:0, trained:0, stars:0, morale:70, traits:[], copies:0, auto:{on:false,type:'balanced',pri:3}, gear:{weapon:null,armor:null,charm:null}, apps:0, ratingSum:0, mvp:0, kills:0, affinity:0, chapter:0, talked:0, awaken:0}; }
 // 이전 저장 데이터에 새 시스템 필드를 채워 넣습니다.
 function upgradeState(s){
+  s.schoolName=schoolName(s);
+  s.stadium=Math.max(0,Math.min(STADIUM.length,Math.floor(Number(s.stadium)||0)));
+  if(s.starterRecruit&&(!Array.isArray(s.starterRecruit.ids)||s.starterRecruit.ids.length!==5||new Set(s.starterRecruit.ids).size!==5||s.starterRecruit.ids.some(id=>!s.roster?.[id]||!CHARACTERS.some(c=>c.id===id))))delete s.starterRecruit;
   s.facilities??={}; FACILITIES.forEach(f=>s.facilities[f.id]??=0);
   s.items??=[]; s.itemSeq??=1; s.news??=[]; s.trophies??=[]; s.pendingEvent??=null; s.seasonSummary??=null; s.sacked??=false; s.tactics.stance??='advance'; s.tactics.orders??={}; s.tactics.captain??=null; ensureFinance(s); s.duos??={}; s.stones??=0; s.tickets??=0; s.coupons??=[]; s.heroPicks??=0; s.expeditionDay??=0; s.expeditions??=[]; s.coachName??=''; if(s.coachName==='코치')s.coachName=''; s.coachTitle??='코치'; s.consumables??={}; CONSUMABLES.forEach(c=>s.consumables[c.id]??=0); s.gearPity??=0; normalizeBench(s); s.lineups=Array.from({length:LINEUP_SLOTS},(_,i)=>s.lineups?.[i]||null); s.autoTrain??={on:true,reserve:1000,fatigueCap:60,team:null}; s.teamDrills??={}; TEAM_DRILLS.forEach(d=>s.teamDrills[d.id]??={lv:0,xp:0}); s.teamColor??=null; s.teamTrained??=0; ensureTimetable(s); s.stadium??=0; Object.values(s.roster).forEach(p=>{p.auto??={on:false,type:'balanced',pri:3};p.auto.pri=autoRank(p.auto.pri);});
   Object.values(s.roster).forEach(p=>{const base=newProgress();for(const k in base)p[k]??=base[k];p.gear={...base.gear,...p.gear};});
@@ -1221,6 +1226,12 @@ const moraleLabel=m=>m>=85?'최고':m>=65?'좋음':m>=45?'보통':m>=25?'나쁨'
 
 // ── 리그 · 승강제 ──────────────────────────────────────
 const TEAM={ name:'아스트라 아카데미', short:'AST', color:'#b4a1ed', description:'다섯 개의 가능성, 하나의 팀' };
+const SCHOOL_NAME_MAX=24;
+function normalizeSchoolName(value){return typeof value==='string'?value.replace(/[\u0000-\u001f\u007f]/g,'').trim().replace(/\s+/g,' ').slice(0,SCHOOL_NAME_MAX):'';}
+function schoolName(state){return normalizeSchoolName(state?.schoolName)||TEAM.name;}
+function setSchoolName(state,value){const name=normalizeSchoolName(value);if(!name)return false;state.schoolName=name;return true;}
+// 대회 브랜드인 아스트라 컵은 학교 이름과 별개입니다.
+function schoolText(state,text){return String(text??'').replace(/아스트라 아카데미|아스트라(?! 컵)/g,()=>schoolName(state));}
 const OPPONENTS=SCHOOLS;
 // 몸 반경: 근접 유닛은 상대와 이만큼 떨어진 채로 칩니다(캐릭터가 겹쳐 보이지 않게).
 const CONTACT=34,reachOf=u=>u.range+(u.range<70?CONTACT:0);
@@ -1278,7 +1289,7 @@ const cupOf=(state,L='C')=>L==='O'?ensurePlayoffs(state):state[CUPS[L].key];
 const stagesOf=cup=>cup?.stages||LEGACY_CUP_STAGES;
 const cupName=cup=>cup?.name||CUPS.C.name;
 const divisionOf=(state,key)=>DIVISIONS.find(d=>state.divisions?.[d]?.includes(key))||null;
-const teamInfo=key=>key==='AST'?TEAM:SCHOOLS.find(o=>o.short===key);
+const teamInfo=(key,state)=>key==='AST'?{...TEAM,name:schoolName(state)}:SCHOOLS.find(o=>o.short===key);
 function initialDivisions(div){const d1=SCHOOLS.filter(o=>o.div===1).map(o=>o.short),d2=SCHOOLS.filter(o=>o.div===2).map(o=>o.short),d3=SCHOOLS.filter(o=>o.div===3).map(o=>o.short);if(div===1){const drop=d1.at(-1);return {1:['AST',...d1.filter(k=>k!==drop)],2:[drop,...d2],3:d3};}return {1:d1,2:['AST',...d2],3:d3};}
 function newLeague(season,teams){
   // 원형 배치로 전반기 7라운드를 만들고, 후반기는 같은 대진을 홈/어웨이만 바꿔 반복합니다.
@@ -1349,7 +1360,7 @@ function leagueTable(state,div=state.division){
   state.leagues[div].results.forEach(round=>(round||[]).forEach(m=>{[[m.home,m.hs,m.as,0],[m.away,m.as,m.hs,1]].forEach(([k,f,a,side])=>{const r=rows[k];if(!r)return;r.p++;r.gf+=f;r.ga+=a;const res=m.w===2?'D':m.w===side?'W':'L';r.form.push(res);if(res==='W'){r.w++;r.pts+=3;}else if(res==='D'){r.d++;r.pts++;}else r.l++;});}));
   return Object.values(rows).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf||a.key.localeCompare(b.key));
 }
-function teamFromState(state){return {info:TEAM,color:teamColorOf(state),tactics:{...state.tactics},members:state.squad.map(id=>({...stats(id,state.roster[id],unitBonus(state,id)),order:{...(state.tactics.orders?.[id]||{})}})),positions:formationPositions(state)};}
+function teamFromState(state){return {info:teamInfo('AST',state),color:teamColorOf(state),tactics:{...state.tactics},members:state.squad.map(id=>({...stats(id,state.roster[id],unitBonus(state,id)),order:{...(state.tactics.orders?.[id]||{})}})),positions:formationPositions(state)};}
 function teamFromOpponent(o,level,boost=0){return {info:o,tactics:{...o.style},boost,members:o.lineup.map(id=>stats(id,{legacy:true,level,stars:Math.max(0,o.tier||0),attack:(level-1)*6,defense:(level-1)*4,speed:level-1,awaken:AWAKEN.filter(a=>level>=a.level).length},{hp:boost,atk:boost,def:boost})),positions:presetPositions(o.style.formation,o.lineup)};}
 const opponentTeam=(state,o,round=state.match)=>teamFromOpponent({...o,lineup:schoolLineup(state,o)},opponentLevel(state,o,round),opponentBoost(state,o.short,round).total);
 const kills=(b,team)=>b.units.filter(u=>u.team!==team&&!u.alive&&!u.subbedOut).length;
@@ -1916,6 +1927,8 @@ class Battle {
     this.shake=0;this.cutins=[];this.feed=[];this.sfx=[];this.intro=0;this.ai=opts.ai||[false,true];this.timeouts=[2,2];this.subs=[2,2];this.aiCalls=[0,0];this.guardUntil=[0,0];
     if(!teams){const o=currentOpponent(state),fx=currentFixture(state);teams=[teamFromState(state),opponentTeam(state,o)];opts.home=fx?.type==='league'?(fx.pair[0]==='AST'?0:1):null;}
     this.home=opts.home??null;
+    this.stadiumLevel=this.home===0?Math.max(0,Math.min(STADIUM.length,Math.floor(Number(state?.stadium)||0))):0;
+    this.stadiumName=this.home===0?schoolName(state):'';
     this.teams=teams.map(t=>t.info);this.opponent=teams[1].info;this.teamColors=teams.map(t=>t.color||null);this.teamTactics=teams.map(t=>({...t.tactics}));this.tactics=this.teamTactics[0];
     teams.forEach((tm,team)=>tm.members.forEach((s,i)=>{const a=arenaPosition(tm.positions[i]),edge=this.home===team?1+HOME_EDGE+(team===0?stadiumEdge(state):0):1;this.addUnit({...s,atk:Math.round(s.atk*edge),def:Math.round(s.def*edge)},team,team?920-a.x:a.x,a.y,team+'-'+i);}));
     // 닉스 패시브(월영의 베일): 처음 받는 공격 3회 무효
