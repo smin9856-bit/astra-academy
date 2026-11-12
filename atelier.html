@@ -1251,7 +1251,7 @@ function chooseOffseason(state,id){const o=state.offseason,def=OFFSEASON.find(x=
  if(id==='revenue'){gold=1500+(state.fame??0)*40;state.gold+=gold;book(state,gold,'비시즌 수익 활동');changeFame(state,4,'비시즌 팬 행사');R.forEach(p=>{bump(p,'fatigue',10);bump(p,'morale',-8);});}
  if(id==='vacation')R.forEach(p=>{p.morale=Math.max(p.morale,95);});
  state.preseason={kind:id,season:state.season,untilMatch:6,power:id==='camp'?.04:id==='abroad'?.06:0,goldBonus:id==='revenue'?.1:0};
- o.done=true;o.choice=id;addNews(state,'비시즌',`${seasonKind(o.from).off}${winter?'':' 비시즌'}: ${def.name}${winter&&id==='vacation'?' (겨울 휴가 보너스)':''}${gold?` (+${gold.toLocaleString()} G)`:''}${cost?` (−${cost.toLocaleString()} G)`:''}`);return {id,gold,cost};}
+ o.done=true;o.choice=id;calibrateLeague(state);addNews(state,'비시즌',`${seasonKind(o.from).off}${winter?'':' 비시즌'}: ${def.name}${winter&&id==='vacation'?' (겨울 휴가 보너스)':''}${gold?` (+${gold.toLocaleString()} G)`:''}${cost?` (−${cost.toLocaleString()} G)`:''}`);return {id,gold,cost};}
 const SCHEDULE=['L','L','L','L','R','L','L','L','L','R','L','L','L','R','L','L','L','C','C','C','C','C'];
 const OLD_SCHEDULE=['L','L','L','C','L','L','L','L','C','L','L','L','C','L','L','L','C','L'];
 // 아스트라 컵: 24개 학교. 2·3부 16팀이 예선을 치르고, 이긴 8팀이 1부 8팀과 16강에서 만납니다.
@@ -1336,7 +1336,12 @@ function opponentLevel(state,o,round=state.match){return Math.max(1,Math.round(s
 // 1부 순위: 시즌 중에는 현재 순위표, 개막 전에는 지난 시즌 순서를 씁니다.
 function div1Rank(state,key){return (state.divisions?.[1]||[]).indexOf(key)+1;}
 // 상대 보정치(능력치 %): ① 시즌 후반으로 갈수록 오르는 보정은 매 시즌 0에서 다시 시작하고, ② 1부 상위권 보정은 순위가 높을수록 커집니다. 둘 다 시즌이 지날수록 커집니다.
-function opponentBoost(state,key,round=state.match){const season=state.season||1,late=Math.min(1,round/(ROUNDS-1))*(.15+.03*(season-1));let top=0;if(state.divisions?.[1]?.includes(key)){top=([.12,.09,.06,.03][div1Rank(state,key)-1]||0)*(1+.25*(season-1));}const divB=DIV_BOOST[divisionOf(state,key)]??0,trad=TRADITION[key]||0,prog=state.schoolGrowth?.[key]||0,grow=OPP_SEASON_BOOST*(season-1)+trad+prog,awake=isAwakened(state,key,round)?AWAKEN_BOOST:0,total=late+top+divB+grow+awake;
+// 리그 수준 맞추기: 시즌이 시작될 때(비시즌 선택 직후) 우리 팀의 '가장 강한 다섯 명' 전력을 같은 리그 2위권 학교와 견줍니다.
+// 우리가 앞서 나갈수록 다른 학교들도 그만큼 전력을 보강하고(최대 +90%), 크게 뒤처지면 보강 폭이 줄어듭니다(최대 −12%). 시즌 중에는 바뀌지 않습니다.
+const PACE_K=.85,PACE_MIN=-.12,PACE_MAX=.9;
+function bestPower(state){return Object.keys(state.roster).filter(id=>!state.roster[id].injury).map(id=>unitPower(stats(id,state.roster[id],unitBonus(state,id)))).sort((a,b)=>b-a).slice(0,5).reduce((a,b)=>a+b,0);}
+function calibrateLeague(state){if((state.season||1)<=1){state.leaguePace={season:state.season||1,value:0};return 0;}const div=state.division;state.leaguePace=null;const rivals=(state.divisions?.[div]||[]).filter(k=>k!=='AST').map(k=>teamPower(opponentTeam(state,teamInfo(k),HALF))).sort((a,b)=>b-a),ref=rivals[1]||rivals[0]||1,value=Math.round(Math.max(PACE_MIN,Math.min(PACE_MAX,(bestPower(state)/ref-.97)*PACE_K))*1000)/1000;state.leaguePace={season:state.season,value};if(value>=.08)addNews(state,'리그',`아스트라의 성장에 자극받은 학교들이 전력을 크게 보강했어요 (리그 수준 +${Math.round(value*100)}%)`);return value;}
+function opponentBoost(state,key,round=state.match){const season=state.season||1,late=Math.min(1,round/(ROUNDS-1))*(.15+.03*(season-1));let top=0;if(state.divisions?.[1]?.includes(key)){top=([.12,.09,.06,.03][div1Rank(state,key)-1]||0)*(1+.25*(season-1));}const divB=DIV_BOOST[divisionOf(state,key)]??0,trad=TRADITION[key]||0,prog=state.schoolGrowth?.[key]||0,pace=state.leaguePace?.season===season?state.leaguePace.value:0,grow=OPP_SEASON_BOOST*(season-1)+trad+prog+pace,awake=isAwakened(state,key,round)?AWAKEN_BOOST:0,total=late+top+divB+grow+awake;
   return {late:Math.round(late*1000)/1000,top:Math.round(top*1000)/1000,div:divB,grow:Math.round(grow*1000)/1000,awake,total:Math.round(total*1000)/1000};}
 function leagueTable(state,div=state.division){
   if(!state.leagues?.[div])return (state.divisions?.[div]||[]).map(k=>({key:k,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,form:[]}));
@@ -1661,6 +1666,23 @@ const PAPER_EVERY=3;
 // 호외: 큰 사건이 생기면 다음 아침 바로 발행합니다.
 function pushScoop(state,a){(state.scoops??=[]).push(a);}
 
+
+// ── 시즌 시상식: 시즌이 끝나면 그 시즌 우리 경기 기록으로 MVP · 처치왕 · 헌신상 · 신인상을 뽑습니다 ──
+// 수상자는 호감도 +8 · 사기 +10을 받고, 팀 명성이 조금 오릅니다.
+function seasonAwards(state,season=state.season){const games=(state.history||[]).filter(h=>h.season===season),agg={};
+ for(const h of games)for(const u of h.units||[]){if(u.team!==0)continue;const a=agg[u.id]??={id:u.id,apps:0,rating:0,kills:0,support:0};a.apps++;a.rating+=u.rating||0;a.kills+=u.kills||0;a.support+=(u.healing||0)+(u.shielded||0);}
+ const L=Object.values(agg),min=Math.max(2,Math.ceil(games.length*.4)),reg=L.filter(a=>a.apps>=min);if(!reg.length)return [];
+ const best=(arr,f)=>[...arr].sort((a,b)=>f(b)-f(a)||a.id.localeCompare(b.id))[0],avg=a=>a.rating/a.apps,out=[];
+ const mvp=best(reg,avg);out.push({key:'mvp',title:'시즌 MVP',icon:'🏆',id:mvp.id,text:`평균 평점 ${avg(mvp).toFixed(2)} · ${mvp.apps}경기`});
+ const top=best(L,a=>a.kills);if(top.kills>0)out.push({key:'kills',title:'처치왕',icon:'⚔',id:top.id,text:`${top.kills}처치`});
+ const sup=best(L,a=>a.support);if(sup.support>0)out.push({key:'support',title:'헌신상',icon:'💗',id:sup.id,text:`회복·보호막 ${Math.round(sup.support).toLocaleString()}`});
+ const rookies=reg.filter(a=>a.id!==mvp.id&&state.roster[a.id]&&state.roster[a.id].apps<=a.apps);if(rookies.length){const r=best(rookies,avg);out.push({key:'rookie',title:'신인상',icon:'🌱',id:r.id,text:`데뷔 시즌 평균 평점 ${avg(r).toFixed(2)}`});}
+ return out;}
+function grantSeasonAwards(state){const list=seasonAwards(state);if(!list.length)return null;(state.awards??=[]).unshift({season:state.season,list});state.awards=state.awards.slice(0,12);
+ for(const a of list){const p=state.roster[a.id];if(!p)continue;p.affinity=Math.min(100,(p.affinity||0)+8);p.morale=clamp100((p.morale??70)+10);}
+ changeFame(state,list.length>=3?2:1,'시즌 시상식');const nm=id=>{const c=CHARACTERS.find(c=>c.id===id);return c?.shortName||c?.name||id;},mvp=list[0];
+ pushScoop(state,{tag:'시상식',title:`${seasonLabel(state.season)} MVP는 ${nm(mvp.id)}`,body:`${mvp.text}.${list.slice(1).map(a=>` ${a.title} ${nm(a.id)}(${a.text}).`).join('')}`,hero:mvp.id});
+ addNews(state,'시상식',list.map(a=>`${a.title} ${nm(a.id)}`).join(' · '));return list;}
 // ── 학교 명성 ──
 // 다른 학교들의 명성: 리그 등급 · 학교 등급 · 전통 · 최근 성적(성장 보정) · 이번 시즌 폼으로 정해지고, 0~99 사이입니다(100 '전설의 명문'은 아스트라만 노릴 수 있어요).
 const FAME_BASE={1:58,2:36,3:18},FAME_TRADITION={OBS:22,VAL:16};
@@ -1857,7 +1879,8 @@ function endSeason(state){
   addNews(state,'리그',`${seasonLabel(state.season)} ${div}부 리그 최종 ${rank}위${rank===1?' · 우승!':''}${moved==='up'?` · ${div-1}부 승격!`:moved==='down'?` · ${div+1}부 강등`:''}`);
   // 남는 팀(순위 순) + 아래에서 올라온 팀 + 위에서 내려온 팀
   state.divisions=Object.fromEntries(divs.map(d=>[d,[...tables[d].map(r=>r.key).filter(k=>!up[d].includes(k)&&!down[d].includes(k)),...(up[d+1]||[]),...(down[d-1]||[])]]));
-  state.division=divisionOf(state,'AST');state.season++;startSeason(state);state.offseason={from:state.season-1,done:false};state.preseason=null;
+  grantSeasonAwards(state);
+  state.division=divisionOf(state,'AST');state.season++;startSeason(state);state.offseason={from:state.season-1,done:false};state.preseason=null;calibrateLeague(state);
   return summary;
 }
 // 컵 일정인데 이미 탈락했다면, 그 라운드는 다른 학교끼리 치르고 넘어갑니다.

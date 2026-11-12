@@ -955,6 +955,24 @@ body[data-season="summer"] .match-preview{box-shadow:inset 0 -60px 60px -30px #9
 .off-arena>span{position:absolute;bottom:10px;left:12px;padding:5px 12px;border-radius:3px;background:#211b32dd;color:#f4dfb0;font-size:12px}
 @media(max-width:600px){.off-arena{height:140px}}
 
+/* 오늘의 할 일 */
+.todo-panel{margin-bottom:18px}
+.todo-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.todo-item{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:9px 12px;border-radius:8px;border:1px solid #ffffff1a;background:#ffffff08;color:#e9dcc0;font-size:12px;text-align:left;cursor:pointer}
+.todo-item:hover{border-color:#ffd77a;background:#ffd77a12}.todo-item i{font-style:normal;font-size:16px;text-align:center}.todo-item em{font-style:normal;color:#bfae93;font-size:16px}
+.todo-item.alert{border-color:#ffd77a;background:linear-gradient(90deg,#ffd77a22,transparent);color:#fff6dc;font-weight:700}
+.todo-item.warn{border-color:#ff9f9f77;background:#ff9f9f10}
+.todo-empty{margin:0;font-size:12px;color:#9fe3a8}
+@media(max-width:740px){.todo-list{grid-template-columns:1fr}}
+
+/* 시즌 시상식 */
+.award-row{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:10px 0 2px;padding:10px 12px;border-radius:10px;border:1px solid #ffd77a55;background:linear-gradient(90deg,#ffd77a14,transparent)}
+.award-row>b{flex:0 0 100%;font-size:13px;color:#ffe6b0}
+.award-chip{display:grid;grid-template-columns:auto 1fr;column-gap:8px;align-items:center;padding:6px 10px;border-radius:8px;background:#ffffff0a;border:1px solid #ffffff1a;min-width:150px}
+.award-chip i{grid-row:1/4;font-style:normal;font-size:22px}.award-chip em{font-style:normal;font-size:10px;letter-spacing:1px;color:#ffd77a;font-weight:800}.award-chip strong{font-size:14px;color:#fff6dc}.award-chip small{font-size:10px;color:#bfae93}
+.award-chip.aw-mvp{border-color:#ffd77a;box-shadow:0 0 12px #ffd77a33}
+.todo-panel{padding:14px 16px}.todo-panel .panel-heading{margin-bottom:10px}
+
 </style>
 </head>
 <body>
@@ -2216,7 +2234,7 @@ function chooseOffseason(state,id){const o=state.offseason,def=OFFSEASON.find(x=
  if(id==='revenue'){gold=1500+(state.fame??0)*40;state.gold+=gold;book(state,gold,'비시즌 수익 활동');changeFame(state,4,'비시즌 팬 행사');R.forEach(p=>{bump(p,'fatigue',10);bump(p,'morale',-8);});}
  if(id==='vacation')R.forEach(p=>{p.morale=Math.max(p.morale,95);});
  state.preseason={kind:id,season:state.season,untilMatch:6,power:id==='camp'?.04:id==='abroad'?.06:0,goldBonus:id==='revenue'?.1:0};
- o.done=true;o.choice=id;addNews(state,'비시즌',`${seasonKind(o.from).off}${winter?'':' 비시즌'}: ${def.name}${winter&&id==='vacation'?' (겨울 휴가 보너스)':''}${gold?` (+${gold.toLocaleString()} G)`:''}${cost?` (−${cost.toLocaleString()} G)`:''}`);return {id,gold,cost};}
+ o.done=true;o.choice=id;calibrateLeague(state);addNews(state,'비시즌',`${seasonKind(o.from).off}${winter?'':' 비시즌'}: ${def.name}${winter&&id==='vacation'?' (겨울 휴가 보너스)':''}${gold?` (+${gold.toLocaleString()} G)`:''}${cost?` (−${cost.toLocaleString()} G)`:''}`);return {id,gold,cost};}
 const SCHEDULE=['L','L','L','L','R','L','L','L','L','R','L','L','L','R','L','L','L','C','C','C','C','C'];
 const OLD_SCHEDULE=['L','L','L','C','L','L','L','L','C','L','L','L','C','L','L','L','C','L'];
 // 아스트라 컵: 24개 학교. 2·3부 16팀이 예선을 치르고, 이긴 8팀이 1부 8팀과 16강에서 만납니다.
@@ -2301,7 +2319,12 @@ function opponentLevel(state,o,round=state.match){return Math.max(1,Math.round(s
 // 1부 순위: 시즌 중에는 현재 순위표, 개막 전에는 지난 시즌 순서를 씁니다.
 function div1Rank(state,key){return (state.divisions?.[1]||[]).indexOf(key)+1;}
 // 상대 보정치(능력치 %): ① 시즌 후반으로 갈수록 오르는 보정은 매 시즌 0에서 다시 시작하고, ② 1부 상위권 보정은 순위가 높을수록 커집니다. 둘 다 시즌이 지날수록 커집니다.
-function opponentBoost(state,key,round=state.match){const season=state.season||1,late=Math.min(1,round/(ROUNDS-1))*(.15+.03*(season-1));let top=0;if(state.divisions?.[1]?.includes(key)){top=([.12,.09,.06,.03][div1Rank(state,key)-1]||0)*(1+.25*(season-1));}const divB=DIV_BOOST[divisionOf(state,key)]??0,trad=TRADITION[key]||0,prog=state.schoolGrowth?.[key]||0,grow=OPP_SEASON_BOOST*(season-1)+trad+prog,awake=isAwakened(state,key,round)?AWAKEN_BOOST:0,total=late+top+divB+grow+awake;
+// 리그 수준 맞추기: 시즌이 시작될 때(비시즌 선택 직후) 우리 팀의 '가장 강한 다섯 명' 전력을 같은 리그 2위권 학교와 견줍니다.
+// 우리가 앞서 나갈수록 다른 학교들도 그만큼 전력을 보강하고(최대 +90%), 크게 뒤처지면 보강 폭이 줄어듭니다(최대 −12%). 시즌 중에는 바뀌지 않습니다.
+const PACE_K=.85,PACE_MIN=-.12,PACE_MAX=.9;
+function bestPower(state){return Object.keys(state.roster).filter(id=>!state.roster[id].injury).map(id=>unitPower(stats(id,state.roster[id],unitBonus(state,id)))).sort((a,b)=>b-a).slice(0,5).reduce((a,b)=>a+b,0);}
+function calibrateLeague(state){if((state.season||1)<=1){state.leaguePace={season:state.season||1,value:0};return 0;}const div=state.division;state.leaguePace=null;const rivals=(state.divisions?.[div]||[]).filter(k=>k!=='AST').map(k=>teamPower(opponentTeam(state,teamInfo(k),HALF))).sort((a,b)=>b-a),ref=rivals[1]||rivals[0]||1,value=Math.round(Math.max(PACE_MIN,Math.min(PACE_MAX,(bestPower(state)/ref-.97)*PACE_K))*1000)/1000;state.leaguePace={season:state.season,value};if(value>=.08)addNews(state,'리그',`아스트라의 성장에 자극받은 학교들이 전력을 크게 보강했어요 (리그 수준 +${Math.round(value*100)}%)`);return value;}
+function opponentBoost(state,key,round=state.match){const season=state.season||1,late=Math.min(1,round/(ROUNDS-1))*(.15+.03*(season-1));let top=0;if(state.divisions?.[1]?.includes(key)){top=([.12,.09,.06,.03][div1Rank(state,key)-1]||0)*(1+.25*(season-1));}const divB=DIV_BOOST[divisionOf(state,key)]??0,trad=TRADITION[key]||0,prog=state.schoolGrowth?.[key]||0,pace=state.leaguePace?.season===season?state.leaguePace.value:0,grow=OPP_SEASON_BOOST*(season-1)+trad+prog+pace,awake=isAwakened(state,key,round)?AWAKEN_BOOST:0,total=late+top+divB+grow+awake;
   return {late:Math.round(late*1000)/1000,top:Math.round(top*1000)/1000,div:divB,grow:Math.round(grow*1000)/1000,awake,total:Math.round(total*1000)/1000};}
 function leagueTable(state,div=state.division){
   if(!state.leagues?.[div])return (state.divisions?.[div]||[]).map(k=>({key:k,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,form:[]}));
@@ -2626,6 +2649,23 @@ const PAPER_EVERY=3;
 // 호외: 큰 사건이 생기면 다음 아침 바로 발행합니다.
 function pushScoop(state,a){(state.scoops??=[]).push(a);}
 
+
+// ── 시즌 시상식: 시즌이 끝나면 그 시즌 우리 경기 기록으로 MVP · 처치왕 · 헌신상 · 신인상을 뽑습니다 ──
+// 수상자는 호감도 +8 · 사기 +10을 받고, 팀 명성이 조금 오릅니다.
+function seasonAwards(state,season=state.season){const games=(state.history||[]).filter(h=>h.season===season),agg={};
+ for(const h of games)for(const u of h.units||[]){if(u.team!==0)continue;const a=agg[u.id]??={id:u.id,apps:0,rating:0,kills:0,support:0};a.apps++;a.rating+=u.rating||0;a.kills+=u.kills||0;a.support+=(u.healing||0)+(u.shielded||0);}
+ const L=Object.values(agg),min=Math.max(2,Math.ceil(games.length*.4)),reg=L.filter(a=>a.apps>=min);if(!reg.length)return [];
+ const best=(arr,f)=>[...arr].sort((a,b)=>f(b)-f(a)||a.id.localeCompare(b.id))[0],avg=a=>a.rating/a.apps,out=[];
+ const mvp=best(reg,avg);out.push({key:'mvp',title:'시즌 MVP',icon:'🏆',id:mvp.id,text:`평균 평점 ${avg(mvp).toFixed(2)} · ${mvp.apps}경기`});
+ const top=best(L,a=>a.kills);if(top.kills>0)out.push({key:'kills',title:'처치왕',icon:'⚔',id:top.id,text:`${top.kills}처치`});
+ const sup=best(L,a=>a.support);if(sup.support>0)out.push({key:'support',title:'헌신상',icon:'💗',id:sup.id,text:`회복·보호막 ${Math.round(sup.support).toLocaleString()}`});
+ const rookies=reg.filter(a=>a.id!==mvp.id&&state.roster[a.id]&&state.roster[a.id].apps<=a.apps);if(rookies.length){const r=best(rookies,avg);out.push({key:'rookie',title:'신인상',icon:'🌱',id:r.id,text:`데뷔 시즌 평균 평점 ${avg(r).toFixed(2)}`});}
+ return out;}
+function grantSeasonAwards(state){const list=seasonAwards(state);if(!list.length)return null;(state.awards??=[]).unshift({season:state.season,list});state.awards=state.awards.slice(0,12);
+ for(const a of list){const p=state.roster[a.id];if(!p)continue;p.affinity=Math.min(100,(p.affinity||0)+8);p.morale=clamp100((p.morale??70)+10);}
+ changeFame(state,list.length>=3?2:1,'시즌 시상식');const nm=id=>{const c=CHARACTERS.find(c=>c.id===id);return c?.shortName||c?.name||id;},mvp=list[0];
+ pushScoop(state,{tag:'시상식',title:`${seasonLabel(state.season)} MVP는 ${nm(mvp.id)}`,body:`${mvp.text}.${list.slice(1).map(a=>` ${a.title} ${nm(a.id)}(${a.text}).`).join('')}`,hero:mvp.id});
+ addNews(state,'시상식',list.map(a=>`${a.title} ${nm(a.id)}`).join(' · '));return list;}
 // ── 학교 명성 ──
 // 다른 학교들의 명성: 리그 등급 · 학교 등급 · 전통 · 최근 성적(성장 보정) · 이번 시즌 폼으로 정해지고, 0~99 사이입니다(100 '전설의 명문'은 아스트라만 노릴 수 있어요).
 const FAME_BASE={1:58,2:36,3:18},FAME_TRADITION={OBS:22,VAL:16};
@@ -2822,7 +2862,8 @@ function endSeason(state){
   addNews(state,'리그',`${seasonLabel(state.season)} ${div}부 리그 최종 ${rank}위${rank===1?' · 우승!':''}${moved==='up'?` · ${div-1}부 승격!`:moved==='down'?` · ${div+1}부 강등`:''}`);
   // 남는 팀(순위 순) + 아래에서 올라온 팀 + 위에서 내려온 팀
   state.divisions=Object.fromEntries(divs.map(d=>[d,[...tables[d].map(r=>r.key).filter(k=>!up[d].includes(k)&&!down[d].includes(k)),...(up[d+1]||[]),...(down[d-1]||[])]]));
-  state.division=divisionOf(state,'AST');state.season++;startSeason(state);state.offseason={from:state.season-1,done:false};state.preseason=null;
+  grantSeasonAwards(state);
+  state.division=divisionOf(state,'AST');state.season++;startSeason(state);state.offseason={from:state.season-1,done:false};state.preseason=null;calibrateLeague(state);
   return summary;
 }
 // 컵 일정인데 이미 탈락했다면, 그 라운드는 다른 학교끼리 치르고 넘어갑니다.
@@ -4347,12 +4388,36 @@ function continueButton(){if(ui.battle&&!ui.battle.done)return '';const off=!!st
 
 function home(){const wins=state.history.filter(h=>h.win).length, op=opponent();return `${title('YOUR STORY STARTS HERE','아스트라, 전설의 시작 <span class="wave">✦</span>','작은 가능성이 빛나는 전설이 되는 곳. 오늘도 함께 성장해 볼까요?',`<div class="date-pill">${icon('calendar',17)}<span>${seasonLabel(state.season)} <b>·</b> ${state.day}일차</span></div>`)}
  <section class="overview-stats"><div class="stat-card"><div class="stat-icon purple">${icon('shield',23)}</div><div><span>팀 종합 전력</span><strong>${fmt(power(state))}<small class="growth">${icon('arrow',12)} READY</small></strong></div><div class="mini-chart"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="stat-card"><div class="stat-icon amber">${icon('flag',23)}</div><div><span>${state.division}부 리그 순위</span><strong>${myLeague(state).results.length?`${leagueRank()}<small>위</small>`:'<small>개막 전</small>'}<span class="stat-secondary">승점 ${myRow().pts} · ${myRow().w}승 ${myRow().d}무 ${myRow().l}패</span></strong></div><span class="stat-tag">${state.match}/${ROUNDS} 라운드</span></div><div class="stat-card"><div class="stat-icon green">${icon('flag',23)}</div><div><span>이사회 신뢰도</span><strong>${state.board.confidence}<small>/100</small><span class="stat-secondary">${state.board.goal?.text||''}</span></strong></div><span class="stat-tag">${boardMood(state.board.confidence)}</span></div><div class="stat-card fame-card" data-action="fame-board" role="button" tabindex="0" title="전체 학교 명성 순위 보기"><div class="stat-icon gold">★</div><div><span>팀 명성</span><strong>${state.fame??30}<small>/100</small><span class="stat-secondary">${fameLabel(state.fame??30)}</span></strong><div class="fame-bar"><i style="width:${state.fame??30}%"></i></div></div><span class="stat-tag">${state.loseStreak>=2?`${state.loseStreak}연패`:'후원·대출에 영향'}</span></div></section>
- <div class="home-main"><section class="feature-card"><canvas id="academy-art" aria-label="푸른 지붕과 금빛 깃발의 아스트라 왕립 아카데미 풍경"></canvas><div class="feature-shade"></div><div class="feature-copy"><span class="pill"><i></i> THE ACADEMY CHRONICLES</span><h2>당신의 전략으로,<br>전설이 깨어나는 곳.</h2><p>다섯 개의 가능성. 하나의 팀.<br>당신의 전략으로 새로운 전설을 시작하세요.</p><button class="btn light" data-action="nav" data-page="tactics">우리 팀 전술 살펴보기 ${icon('arrow',17)}</button></div><span class="art-caption">ASTRA ROYAL ACADEMY · EST. 1026</span></section>
+ ${todoPanel()}<div class="home-main"><section class="feature-card"><canvas id="academy-art" aria-label="푸른 지붕과 금빛 깃발의 아스트라 왕립 아카데미 풍경"></canvas><div class="feature-shade"></div><div class="feature-copy"><span class="pill"><i></i> THE ACADEMY CHRONICLES</span><h2>당신의 전략으로,<br>전설이 깨어나는 곳.</h2><p>다섯 개의 가능성. 하나의 팀.<br>당신의 전략으로 새로운 전설을 시작하세요.</p><button class="btn light" data-action="nav" data-page="tactics">우리 팀 전술 살펴보기 ${icon('arrow',17)}</button></div><span class="art-caption">ASTRA ROYAL ACADEMY · EST. 1026</span></section>
  <section class="panel next-match"><div class="panel-heading"><h2>다음 경기</h2>${(()=>{const fx=currentFixture(state),cup=fx?.type==='cup';return `<span class="subtle-label">${cup?`${fx.letter==='R'?'ROOKIE':'CUP'} · ${fx.stageName}`:`LEAGUE · R${String(state.match+1).padStart(2,'0')} / ${ROUNDS}`}</span></div><div class="match-type ${cup?'cup':'league'}"><b class="comp-tag ${cup?'cup':'league'}">${cup?`♛ ${fx.cupName}`:'⚔ 리그'}</b> ${fixtureLabel(state)}</div>`;})()}<div class="match-versus"><div>${crest('AST','#b4a1ed')}<b>아스트라</b><small>우리 팀</small></div><span class="vs">VS</span><div>${crest(op.short,op.color)}<b>${op.name.split(' ')[0]}</b><small>상대 팀</small></div></div><div class="match-detail">${icon('calendar',14)} ${isMatchDay(state)?'<b class="today">오늘 경기일</b>':`경기일까지 <b>D-${daysToMatch()}</b>`} <span>${rankText(op.short)} · ${op.style?formationName(op.style.formation):''}</span></div>${isMatchDay(state)?`<button class="btn primary full" data-action="nav" data-page="arena">경기 준비하기 ${icon('arrow',17)}</button>`:`<button class="btn primary full" data-action="continue">${state.pendingEvent?'이벤트 확인':'다음 날로'} ${icon('arrow',17)}</button>`}</section></div>
  <section class="squad-section"><div class="section-heading"><div><h2>우리의 스타팅 멤버 <span class="count">5</span></h2><p>함께라서 더 강한, 아스트라의 다섯 별.</p></div><button class="text-btn" data-action="nav" data-page="units">선수단 관리 ${icon('arrow',16)}</button></div><div class="squad-grid">${state.squad.map((id,i)=>characterCard(id,i)).join('')}</div></section>
  <div class="home-bottom"><section class="panel news-panel"><div class="panel-heading"><h2>${icon('bell',16)} 아카데미 소식</h2><span class="subtle-label">CAMPUS NEWS</span></div>${dailyQuote()}${state.news.length?state.news.slice(0,5).map(n=>`<div class="news-item"><span class="news-tag ${n.tag==='경기'||n.tag==='리그'?'':'green-tag'}">${n.tag}</span><p>${n.text}</p><small>${seasonLabel(n.season)} ${n.day}일</small></div>`).join(''):`<div class="news-item"><span class="news-tag">공지</span><p>아카데미 리그 개막! 8개 학교가 홈&어웨이 14라운드 동안 우승을 다툽니다.</p><small>오늘</small></div><div class="news-item"><span class="news-tag green-tag">코치 TIP</span><p>경기일 전까지 훈련과 휴식으로 컨디션을 끌어올리세요. 상단의 ‘다음 날로’ 버튼으로 하루를 넘깁니다.</p><small>가이드</small></div>`}</section><button class="recruit-teaser" data-action="nav" data-page="scout"><div><span>DESTINED ENCOUNTER</span><h3>새로운 별을 만나 볼까요?</h3><p>당신을 기다리는 특별한 학생들 ${icon('arrow',14)}</p></div><div class="teaser-star">✧</div></button></div><footer>모든 위대한 팀은, 한 명의 코치로부터. <span>ASTRA ACADEMY © 2026</span></footer>`;}
 // 오늘 코치에게 말을 거는 선발 학생 한 명 (사기에 따라 말투가 달라집니다)
 function dailyQuote(){const id=state.squad[(state.day+state.season)%state.squad.length],p=state.roster[id],c=char(id),kind=p.morale<45?'tired':p.morale>=85?'happy':'greet';return `<button class="daily-quote" data-action="character" data-id="${id}" style="--char:${c.color}">${portrait(c,'',56,64)}<div><b>${c.shortName||c.name}</b><p>“${voice(id,kind,state.day)}”</p></div></button>`;}
+
+// ── 오늘의 할 일: 지금 할 수 있는 일을 급한 순서로 모아, 누르면 바로 그 화면으로 갑니다 ──
+function todoItems(){const T=[],name=id=>char(id).shortName||char(id).name,ids=Object.keys(state.roster),add=(pri,icon,text,attrs,tone='')=>T.push({pri,icon,text,attrs,tone});
+ if(state.offseason&&!state.offseason.done)add(0,'🏕','비시즌에 무엇을 할지 정해 주세요','data-action="continue"','alert');
+ if(state.pendingEvent)add(1,'🔔','아카데미 이벤트가 기다리고 있어요','data-action="continue"','alert');
+ if(isMatchDay(state)&&!state.pendingEvent)add(2,'⚔',`오늘은 경기일이에요 · ${fixtureLabel(state)}`,'data-action="continue"','alert');
+ const hurt=state.squad.filter(id=>state.roster[id]?.injury);if(hurt.length)add(3,'🩹',`부상 중인 선발: ${hurt.map(name).join(', ')} · 라인업을 바꿔 보세요`,'data-action="nav" data-page="tactics"','warn');
+ const tr=ids.filter(id=>pendingTraits(state.roster[id]));if(tr.length)add(4,'✧',`새 특성을 고를 수 있어요: ${tr.slice(0,3).map(name).join(', ')}${tr.length>3?` 외 ${tr.length-3}명`:''}`,`data-action="todo-char" data-id="${tr[0]}" data-tab="growth"`);
+ const aw=ids.filter(id=>awakenCheck(state,id).ok);if(aw.length)add(5,'◆',`각성할 수 있어요: ${aw.slice(0,3).map(name).join(', ')}`,`data-action="todo-char" data-id="${aw[0]}" data-tab="growth"`);
+ const br=ids.filter(id=>(state.roster[id].copies||0)>0&&(state.roster[id].stars||0)<BREAKTHROUGH.length);if(br.length)add(6,'✦',`돌파할 수 있어요: ${br.slice(0,3).map(name).join(', ')}`,`data-action="todo-char" data-id="${br[0]}" data-tab="growth"`);
+ const bd=ids.filter(id=>bondReady(state.roster[id]));if(bd.length)add(7,'♥',`인연 이야기가 열렸어요: ${bd.slice(0,3).map(name).join(', ')}`,`data-action="todo-char" data-id="${bd[0]}" data-tab="bond"`);
+ const used=new Set(Object.values(state.roster).flatMap(p=>Object.values(p.gear||{})).filter(Boolean)),spare=(state.items||[]).filter(it=>!used.has(it.uid)),open=state.squad.find(id=>spare.some(it=>!state.roster[id].gear?.[itemDef(it.id).slot]));
+ if(open)add(8,'🗡',`가방에 남는 장비가 있어요 · ${name(open)}에게 장착해 보세요`,`data-action="todo-char" data-id="${open}" data-tab="gear"`);
+ const fac=FACILITIES.find(f=>(state.facilities[f.id]||0)<f.costs.length&&state.gold>=f.costs[state.facilities[f.id]||0]);if(fac)add(9,'🏛',`시설을 확장할 수 있어요: ${fac.name} (${fmt(fac.costs[state.facilities[fac.id]||0])} G)`,'data-action="nav" data-page="academy"');
+ if((state.faculty||[]).length<FACULTY_MAX&&facultyMarket(state).some(f=>!f.hired&&state.gold>=f.pay*3))add(10,'🎓',`교수진 자리가 ${FACULTY_MAX-(state.faculty||[]).length}개 비어 있어요`,'data-action="nav" data-page="training"');
+ if((state.tickets||0)>=1||state.gems>=recruitCost(state)*10)add(11,'🌟',(state.tickets||0)>=1?`뽑기권 ${state.tickets}장으로 학생을 모집할 수 있어요`:'크리스탈이 10연속 모집만큼 모였어요','data-action="nav" data-page="scout"');
+ const mates=[...state.squad,...state.bench].filter(id=>id&&state.roster[id]),low=mates.length?mates.reduce((v,id)=>v+(state.roster[id].morale??70),0)/mates.length:70;
+ if(low<55&&!dinnerWait(state)&&state.gold>=dinnerCost(state))add(12,'🍻',`선수단 사기가 낮아요(평균 ${Math.round(low)}) · 회식을 해 보세요`,'data-action="nav" data-page="training"','warn');
+ const tired=state.squad.filter(id=>(state.roster[id]?.fatigue||0)>=50);if(tired.length)add(13,'💤',`피로가 쌓인 선발: ${tired.map(name).join(', ')} · 시간표에 회복 수업이나 휴식을 넣어 보세요`,'data-action="nav" data-page="training"','warn');
+ const talk=mates.filter(id=>state.roster[id].talked!==state.day).length;if(talk)add(14,'💬',`오늘 면담할 수 있는 학생 ${talk}명`,'data-action="nav" data-page="units"');
+ if(state.bench.some(x=>!x)&&ids.some(id=>!state.squad.includes(id)&&!state.bench.includes(id)))add(15,'🪑','후보 자리가 비어 있어요 · 대기 학생을 올려 두세요','data-action="lineup-open" data-kind="bench" data-i="'+Math.max(0,state.bench.findIndex(x=>!x))+'"');
+ if(state.paper&&!state.paper.seen)add(16,'📰',state.paper.extra?'호외가 도착했어요':'새 신문이 도착했어요','data-action="paper"');
+ return T.sort((a,b)=>a.pri-b.pri);}
+function todoPanel(){const T=todoItems(),show=T.slice(0,6);return `<section class="panel todo-panel"><div class="panel-heading"><h2>📋 오늘의 할 일</h2><span class="subtle-label">${T.length?`${T.length}건${T.length>6?' · 급한 순서로 6건':''}`:'모두 완료'}</span></div>${show.length?`<div class="todo-list">${show.map(t=>`<button class="todo-item ${t.tone}" ${t.attrs}><i>${t.icon}</i><span>${t.text}</span><em>›</em></button>`).join('')}</div>`:'<p class="todo-empty">✓ 지금 챙길 일은 없어요. ‘다음 날로’를 눌러 하루를 넘겨 보세요.</p>'}</section>`;}
 
 
 // 선수단 관리 화면
@@ -4573,7 +4638,7 @@ function characterModal(id){
  $('.modal').classList.add('dossier-modal');
 }
 function skillDescription(c){if(c.skillDesc)return c.skillDesc;if(c.id==='ronaldo')return '공격력 220%의 원거리 슛으로 대상을 밀쳐냅니다. 사거리 240 · 재사용 8~11초.';return c.id==='mika'?'5초 동안 남는 물약을 던집니다. 범위(90) 안의 아군은 매초 공격력 50%만큼 회복하고, 적은 방어력이 15% 낮아집니다.':c.id==='rin'?'대상과 그 주변(80) 적 모두에게 공격력 240%의 불꽃 참격을 가합니다.':c.id==='aria'?'최대 체력의 24%만큼 5초간 보호막을 얻고, 5초 동안 자신에게 도발을 걸어 주변 적(260)의 공격을 끌어당깁니다.':c.role==='탱커'?'최대 체력의 24%만큼 5초간 보호막을 얻습니다.':c.role==='서포터'?'살아 있는 아군 전체의 체력을 공격력의 270%만큼 회복합니다.':c.role==='마법사'?'대상 주변 적에게 공격력 190%의 광역 피해를 줍니다.'+(c.id==='seraph'?' 3초간 이동 속도 50% 감소.':''):c.role==='암살자'?'원거리 적의 후방으로 이동해 공격력 250%의 피해를 줍니다.':c.role==='궁수'?'대상에게 공격력 90%의 화살을 세 발 연속 발사합니다.':'공격력 270%의 강력한 참격을 가합니다.';}
-function help(){showModal(`<span class="eyebrow">WELCOME, COACH</span><h2>아스트라 코치 가이드</h2><p class="modal-intro">아스트라는 성인을 위한 판타지 전투 대학입니다. 모든 캐릭터는 22세 이상이며, 당신은 다섯 학생의 성장을 이끄는 코치입니다.</p><div class="guide-steps">${[['units','01 · 선수단 편성','캐릭터를 선택해 능력치와 스킬을 확인하세요. 새로 영입한 학생은 기존 선발 한 명과 교체할 수 있습니다.'],['training','02 · 하루 일정','상단의 ‘다음 날로’로 하루를 넘깁니다. 경기는 3일마다 열리며, 그 사이 90 골드로 학생을 하루 한 번 훈련하세요. 피로는 공격력을, 사기는 공격·방어를 바꿉니다. 하루가 지날 때 아카데미 이벤트가 생길 수 있어요.'],['tactics','03 · 팀 전술 설정','진형, 공격 우선순위, 팀 템포를 설정하세요. 탱커가 버티는 동안 딜러가 공격하고 서포터가 회복합니다.'],['arena','04 · 리그·컵·이사회','1·2·3부 리그(각 8개 학교)가 있고 2부에서 시작해요. 상위 2팀은 한 단계 위로 승격, 하위 2팀은 아래로 강등됩니다. 리그 사이사이 24개 학교 아스트라 컵(2·3부 예선 → 1부 합류 16강 → 결승)과 2·3부 상위 4팀씩 겨루는 루키 컵이 열리고, 컵은 지면 탈락입니다. 이사회가 시즌 목표를 주고, 신뢰도가 바닥나면 해임될 수 있어요. 전투 방식(정면 교전/후열 보호)을 고를 수 있고, 경기 중 작전 타임 2회로 전투 방식·템포·타깃·진형을 바꾸고 교체 2회를 쓸 수 있습니다.'],['academy','05 · 시설과 장비','골드로 훈련장·의무실·기숙사 등을 확장하고, 상점에서 장비를 사서 선수단 화면에서 장착하세요. Lv.3·6·9에는 특성을 하나씩 고릅니다. 학생과 면담해 호감도를 쌓으면 3장짜리 인연 이야기가 열리고, 장마다 영구 능력치가 오릅니다.'],['scout','06 · 새로운 학생 모집','경기 보상 크리스탈로 모집하세요. SSR 3%, SR 22%, R 75%. 50회 이내 SSR이 확정되고, 중복은 돌파·각성석·골드로 전환됩니다. Lv.5·10·15에 골드와 각성석으로 각성하면 능력치, 패시브, 스킬이 강해져요. 속성 상성(불→얼음→풀→땅→전기→물→불, 빛⇄어둠, 바람은 상성 없이 속도형)을 보고 상대에 맞춰 선발을 짜세요.']].map(([i,h,p])=>`<div>${icon(i,23)}<section><b>${h}</b><p>${p}</p></section></div>`).join('')}</div><p class="local-note">모든 진행 상황은 이 브라우저에 자동 저장됩니다. 전투 도중 새로고침하면 경기 시작 전으로 돌아갑니다. 기록은 최근 60경기까지 보관됩니다.</p><button class="btn primary full" data-action="close">우리 팀 이야기 시작하기</button>`);}
+function help(){showModal(`<span class="eyebrow">WELCOME, COACH</span><h2>아스트라 코치 가이드</h2><p class="modal-intro">아스트라는 성인을 위한 판타지 전투 대학입니다. 모든 캐릭터는 22세 이상이며, 당신은 다섯 학생의 성장을 이끄는 코치입니다.</p><div class="guide-steps">${[['units','01 · 선수단 편성','캐릭터를 선택해 능력치와 스킬을 확인하세요. 새로 영입한 학생은 기존 선발 한 명과 교체할 수 있습니다.'],['training','02 · 하루 일정','상단의 ‘다음 날로’로 하루를 넘깁니다. 경기는 3일마다 열리고, 그 사이에는 훈련 센터의 주간 시간표대로 선수단 전원이 무료로 수업을 들어요. 학업 강도와 교수진으로 성장 속도를 조절하세요. 피로는 공격력과 부상 위험을, 사기는 공격·방어를 바꿉니다. 3일마다 신문이 나오고, 큰 사건은 호외로 알려 줘요.'],['tactics','03 · 팀 전술 설정','진형, 공격 우선순위, 팀 템포를 설정하세요. 탱커가 버티는 동안 딜러가 공격하고 서포터가 회복합니다.'],['arena','04 · 리그·컵·이사회','1·2·3부 리그(각 8개 학교)가 있고 2부에서 시작해요. 상위 2팀은 한 단계 위로 승격, 하위 2팀은 아래로 강등됩니다. 1년은 봄·여름·가을 세 시즌이고, 시즌마다 리그 14라운드를 치른 뒤 24개 학교 아스트라 컵(2·3부 예선 → 1부 합류 16강 → 결승)으로 마무리해요. 리그 사이사이에는 2·3부 상위 4팀씩 겨루는 루키 컵이 열리고, 컵은 지면 탈락입니다. 시즌이 끝나면 비시즌(가을 뒤에는 겨울 휴가)에 휴가·합숙·전지훈련·수익 활동 중 하나를 골라요. 상대 학교들도 시즌마다 성장하고, 우리가 강해질수록 더 보강해요. 이사회가 시즌 목표를 주고, 신뢰도가 바닥나면 해임될 수 있어요. 전투 방식(정면 교전/후열 보호)을 고를 수 있고, 경기 중 작전 타임 2회로 전투 방식·템포·타깃·진형을 바꾸고, 교체 2회를 한 번에 써도 됩니다.'],['academy','05 · 시설과 장비','골드로 훈련장·의무실·기숙사 등을 확장하고, 상점에서 장비를 사서 선수단 화면에서 장착하세요. Lv.3·6·9에는 특성을 하나씩 고릅니다. 학생과 면담해 호감도를 쌓으면 3장짜리 인연 이야기가 열리고, 장마다 영구 능력치가 오릅니다.'],['scout','06 · 새로운 학생 모집','경기 보상 크리스탈로 모집하세요. SSR 3%, SR 22%, R 75%. 50회 이내 SSR이 확정되고, 중복은 돌파·각성석·골드로 전환됩니다. Lv.5·10·15에 골드와 각성석으로 각성하면 능력치, 패시브, 스킬이 강해져요. 속성 상성(불→얼음→풀→땅→전기→물→불, 빛⇄어둠, 바람은 상성 없이 속도형)을 보고 상대에 맞춰 선발을 짜세요.']].map(([i,h,p])=>`<div>${icon(i,23)}<section><b>${h}</b><p>${p}</p></section></div>`).join('')}</div><p class="local-note">모든 진행 상황은 이 브라우저에 자동 저장됩니다. 전투 도중 새로고침하면 경기 시작 전으로 돌아갑니다. 기록은 최근 60경기까지 보관됩니다.</p><button class="btn primary full" data-action="close">우리 팀 이야기 시작하기</button>`);}
 // 경기 분석: 팀 비교 막대(피해·회복·받은 피해·처치)와 학생별 막대, 평점·MVP
 function recordModal(index){const h=state.history[index],us=h.units,team=t=>us.filter(u=>u.team===t),tot=(t,k)=>team(t).reduce((a,u)=>a+(u[k]||0),0),max=k=>Math.max(1,...us.map(u=>k==='support'?(u.healing||0)+(u.shielded||0):u[k]||0));
  const cmp=(label,k)=>{const a=tot(0,k),b=tot(1,k),all=Math.max(1,a+b);return `<div class="cmp-row"><b class="t0">${fmt(a)}</b><div class="cmp-bar"><i class="t0" style="width:${a/all*100}%"></i><i class="t1" style="width:${b/all*100}%"></i></div><b class="t1">${fmt(b)}</b><span>${label}</span></div>`;};
@@ -4741,7 +4806,7 @@ function showSeasonChange(n){const k=seasonKind(n),layer=document.createElement(
  document.body.appendChild(layer);const close=()=>{layer.classList.add('out');setTimeout(()=>layer.remove(),400);};layer.addEventListener('pointerdown',close);setTimeout(close,2800);}
 function offseasonModal(){const o=state.offseason;if(!o||o.done)return false;const prev=seasonKind(o.from),sum=state.seasonSummary,next=seasonKind(state.season),winter=!!prev.winter;
  showModal(`<div class="offseason ${winter?'off-winter':''}">${winter?`<div class="off-snow" aria-hidden="true">${Array.from({length:26},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${(i%9)*.5}s;--t:${5+(i%4)}s">❄</i>`).join('')}</div>`:''}<span class="eyebrow">${winter?'WINTER BREAK · ❄ 겨울 휴가 시즌':`OFF-SEASON · ${prev.off} 비시즌`}</span><h2>${seasonLabel(o.from)} 종료 · ${winter?'겨울 휴가 시즌':'비시즌'}</h2><p class="modal-intro">${sum?`지난 시즌 ${sum.division}부 ${sum.rank}위 (${sum.w}승 ${sum.d}무 ${sum.l}패).`:''} 다음은 ${next.icon} <b>${seasonLabel(state.season)}</b>. 비시즌 동안 무엇을 할지 하나를 골라 주세요.</p>
- <div class="off-arena" role="img" aria-label="${winter?'눈 덮인 겨울':next.name} 경기장"><span>${winter?'❄ 겨울 휴가':next.icon+' '+next.name+' 경기장'}</span></div><div class="off-grid">${OFFSEASON.map(x=>{const cost=offseasonCost(state,x.id),poor=state.gold<cost;return `<button class="off-card off-${x.id}" data-action="offseason" data-id="${x.id}" ${poor?'disabled':''}>${winter&&x.id==='vacation'?'<span class="off-badge">❄ 겨울 휴가 보너스</span>':''}<span class="off-icon">${x.icon}</span><b>${x.name}</b><em>${cost?`${fmt(cost)} G`:'무료'}</em><dl><dt>지금</dt><dd>${winter&&x.id==='vacation'?'피로 0 · 부상 14일 회복 · 사기 +30 · 호감도 +10':x.now}</dd><dt>다음 시즌</dt><dd>${x.next}</dd></dl>${poor?'<small class="off-poor">골드가 부족해요</small>':''}</button>`;}).join('')}</div></div>`,true);return true;}
+ <div class="off-arena" role="img" aria-label="${winter?'눈 덮인 겨울':next.name} 경기장"><span>${winter?'❄ 겨울 휴가':next.icon+' '+next.name+' 경기장'}</span></div>${(()=>{const A=(state.awards||[]).find(a=>a.season===o.from);return A?`<div class="award-row"><b>🏅 ${seasonLabel(o.from)} 시상식</b>${A.list.map(a=>{const c=char(a.id);return `<span class="award-chip aw-${a.key}"><i>${a.icon}</i><em>${a.title}</em><strong>${c?.shortName||c?.name||a.id}</strong><small>${a.text}</small></span>`;}).join('')}</div>`:'';})()}<div class="off-grid">${OFFSEASON.map(x=>{const cost=offseasonCost(state,x.id),poor=state.gold<cost;return `<button class="off-card off-${x.id}" data-action="offseason" data-id="${x.id}" ${poor?'disabled':''}>${winter&&x.id==='vacation'?'<span class="off-badge">❄ 겨울 휴가 보너스</span>':''}<span class="off-icon">${x.icon}</span><b>${x.name}</b><em>${cost?`${fmt(cost)} G`:'무료'}</em><dl><dt>지금</dt><dd>${winter&&x.id==='vacation'?'피로 0 · 부상 14일 회복 · 사기 +30 · 호감도 +10':x.now}</dd><dt>다음 시즌</dt><dd>${x.next}</dd></dl>${poor?'<small class="off-poor">골드가 부족해요</small>':''}</button>`;}).join('')}</div></div>`,true);return true;}
 
 
 
@@ -4836,6 +4901,7 @@ document.addEventListener('click',e=>{
  if(a==='preset-del'){const i=Number(el.dataset.i);if(!el.classList.contains('confirm')){el.classList.add('confirm');el.textContent='삭제?';setTimeout(()=>el.isConnected&&render(),2200);return;}deleteLineup(state,i);save();render();toast('저장된 라인업을 지웠어요.');return;}
  if(a==='dossier-tab'){ui.dossierTab=el.dataset.tab;const box=$('.dossier');if(box){box.dataset.tab=el.dataset.tab;box.querySelectorAll('.dx-tab').forEach(b=>{const on=b.dataset.tab===el.dataset.tab;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});}return;}
  if(a==='offseason'){const r=chooseOffseason(state,el.dataset.id);if(r?.error==='gold'){toast(`전지훈련 비용 ${fmt(r.cost)} G가 부족해요.`);return;}if(r){save();closeModal();render();showSeasonChange(state.season);toast(`비시즌: ${({vacation:'🏖 휴가',camp:'⛺ 합숙',abroad:'✈ 전지훈련',revenue:'💰 수익 활동'})[r.id]}${r.gold?` · +${fmt(r.gold)} G`:''}${r.cost?` · −${fmt(r.cost)} G`:''}`);}return;}
+ if(a==='todo-char'){ui.dossierTab=el.dataset.tab||'stats';characterModal(el.dataset.id);return;}
  if(a==='fin-tab'){ui.finTab=el.dataset.tab;render();return;}
  if(a==='fame-board'){ui.finTab='fame';ui.page='finance';render();window.scrollTo(0,0);return;}
  if(a==='loan-take'){const r=takeLoan(state,Number(el.dataset.amt));if(r===false){toast('대출 한도를 넘어요.');return;}save();render();toast(`${fmt(Number(el.dataset.amt))} G를 대출했어요. 현재 부채 ${fmt(r)} G`);return;}
