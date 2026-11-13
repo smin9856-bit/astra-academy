@@ -1654,7 +1654,18 @@ const GRADE_FACTOR={S:1.15,A:1.08,B:1,C:.95,D:.9};
 const fameFactor=state=>.6+(state.fame??30)/100;
 const fameLabel=f=>f>=100?'전설의 명문':f>=70?'명문 아카데미':f>=45?'떠오르는 강호':f>=25?'지역의 기대주':'무명';
 function sponsorAmount(state,grade){return Math.round(SPONSOR_BASE*fameFactor(state)*(GRADE_FACTOR[grade]||1)/10)*10;}
-function changeFame(state,d,reason){if(!d)return;const before=state.fame??30;state.fame=Math.max(0,Math.min(100,before+d));if(Math.abs(d)>=4&&reason)addNews(state,'명성',`${reason} · 명성 ${d>0?'+':''}${d}`);}
+// ── 명성의 현실성 ──
+// ① 시즌 한도: 한 시즌에 오를 수 있는 명성에는 한도가 있어요. 시즌을 시작할 때 명성이 높을수록 한도가 작아요(무명 +18 → 명문 +5).
+// ② 명성 상한: 갑자기 전승 우승한 신생팀이 곧바로 '전설의 명문'이 되지는 않아요. 쌓인 시즌 수 · 1부 경험 · 리그 우승 · 컵 우승이 상한을 올립니다.
+// 내려가는 쪽(연패 · 강등)에는 한도가 없어요.
+const fameCapFor=f=>f<30?18:f<60?12:f<80?8:5;
+function fameCeiling(state){const T=state.trophies||[],seasons=Math.max(0,(state.season||1)-1),titles=T.filter(t=>t.type==='league'&&t.rank===1).length,top=T.filter(t=>t.type==='league'&&t.division===1).length,cups=T.filter(t=>t.type==='cup'&&t.cup!=='R').length,rookie=T.filter(t=>t.type==='cup'&&t.cup==='R').length;
+ return Math.min(100,Math.round(40+3*seasons+2*top+8*titles+6*cups+2*rookie));}
+function fameSeason(state){const f=state.fameSeason;if(f?.season===state.season)return f;return state.fameSeason={season:state.season,start:state.fame??0,gained:0,capped:false};}
+function fameRoom(state){const fs=fameSeason(state);return Math.max(0,Math.min(fameCapFor(fs.start)-fs.gained,fameCeiling(state)-(state.fame??0)));}
+function changeFame(state,d,reason){if(!d)return;const before=state.fame??30;
+ if(d>0){const fs=fameSeason(state),room=fameRoom(state),got=Math.min(d,room);if(got<d&&!fs.capped){fs.capped=true;addNews(state,'명성',room<=0&&fameCeiling(state)<=before?`명성 상한 ${fameCeiling(state)}에 닿았어요. 오랜 역사와 우승 기록이 쌓여야 더 오를 수 있어요.`:`이번 시즌 명성 한도(+${fameCapFor(fs.start)})에 닿았어요. 명성은 하루아침에 쌓이지 않아요.`);}fs.gained+=got;d=got;if(!d)return;}
+ state.fame=Math.max(0,Math.min(100,before+d));if(Math.abs(d)>=4&&reason)addNews(state,'명성',`${reason} · 명성 ${d>0?'+':''}${d}`);}
 function matchFame(state,won,draw){if(won){state.loseStreak=0;changeFame(state,2);}else if(draw){state.loseStreak=0;}else{state.loseStreak=(state.loseStreak||0)+1;changeFame(state,state.loseStreak>=3?-2:-1,state.loseStreak===3?'3연패':null);}}
 function closeQuarter(state){const f=ensureFinance(state);reconcileGold(state);
   if(f.loan>0){const interest=Math.round(f.loan*LOAN_RATE);if(state.gold>=interest){state.gold-=interest;book(state,-interest,'대출 이자');}else{f.loan+=interest;addNews(state,'재무',`이자 ${interest} G를 갚지 못해 부채에 더해졌어요`);}}
