@@ -728,8 +728,8 @@ const CONSUMABLES = [
 ];
 // 부상: 전투 후 학생마다 확률로 생깁니다. 경기에는 그대로 나갈 수 있지만 능력치가 내려갑니다.
 const INJURIES = [
-  { id:'minor', label:'경상', days:3, pen:.10, names:['발목 염좌','어깨 결림','손목 타박상','종아리 경련'] },
-  { id:'major', label:'중상', days:6, pen:.20, names:['근육 파열','갈비뼈 금','무릎 인대 손상','허리 염좌'] }
+  { id:'minor', label:'경상', days:3, pen:.18, names:['발목 염좌','어깨 결림','손목 타박상','종아리 경련'] },
+  { id:'major', label:'중상', days:6, pen:.32, names:['근육 파열','갈비뼈 금','무릎 인대 손상','허리 염좌'] }
 ];
 // 면담 중 부상 암시: 이 대사가 나오면 다음 경기 부상 확률이 50%가 됩니다.
 const OMEN_LINES = ['요즘 발목이 좀 시큰거려요… 별일 아니겠죠?','어제 훈련하다 어깨를 살짝 삐끗했어. 괜찮아, 아마도.','무릎이 조금 뻐근하네요. 경기 전까지는 낫겠죠.','손목이 좀 저려… 코치한테만 말하는 거야.','숨이 자꾸 차요. 몸이 무거운 느낌이에요.','허리가 살짝 결려요. 신경 쓰지 마세요, 진짜로요.'];
@@ -1212,6 +1212,7 @@ function unitBonus(state,id){
   if(state.squad.includes(id)){const cap=captainOf(state);if(cap)add(captainAura(cap).mod);}
   if(state.squad.includes(id))activeChemistry(state).filter(c=>c.pair.includes(id)).forEach(c=>{const m=(state.duos?.[duoKey(c)]?2:1)*(1+.1*teamColorLevel(state,'teamwork'));for(const k in c.mod)b[k]+=c.mod[k]*m;});
   if(p.injury){const pen=p.injury.pen;b.hp-=pen;b.atk-=pen;b.def-=pen;b.speed-=Math.round(pen*30);}
+  const burn=streakPenalty(p);if(burn&&state.squad.includes(id)){b.atk-=burn;b.def-=burn;b.speed-=Math.round(burn*20);}
   const morale=(p.morale??70)-70;b.atk+=morale/400;b.def+=morale/400;
   const bond=(p.chapter||0)*.02;b.hp+=bond;b.atk+=bond;b.def+=bond;
   if(state.prep&&state.prep.matchDay===state.matchDay&&state.squad.includes(id)){b.atk+=state.prep.bonus;b.def+=state.prep.bonus;}
@@ -1235,6 +1236,9 @@ function schoolText(state,text){return String(text??'').replace(/아스트라 �
 const OPPONENTS=SCHOOLS;
 // 몸 반경: 근접 유닛은 상대와 이만큼 떨어진 채로 칩니다(캐릭터가 겹쳐 보이지 않게).
 const CONTACT=34,reachOf=u=>u.range+(u.range<70?CONTACT:0);
+// 로테이션: 연속으로 선발 출전하면 경기 후 피로가 더 쌓이고(STREAK_FATIGUE), 3경기 연속 뒤부터는 능력이 떨어져요(streakPenalty). 한 경기 쉬면 초기화돼요.
+const STREAK_FATIGUE=[0,0,5,10,16,22],DAILY_RECOVERY=20;
+const streakPenalty=p=>(p?.streak||0)>=3?Math.min(.2,.05*((p.streak||0)-2)):0;
 const ROUNDS=14, HALF=7, PROMOTE=2, HOME_EDGE=.04, LEAGUE_FORMAT=2;
 // 한 학기 일정: 홈&어웨이 리그(L) 14경기 사이에 아스트라 컵(C) 16강·8강·4강·결승
 // 한 시즌 22경기: 리그 14 (L) + 아스트라 컵 5 (C) + 루키 컵 3 (R). 이전 형식(18경기) 시즌은 OLD_SCHEDULE로 끝까지 진행합니다.
@@ -1335,10 +1339,21 @@ const RANK_GROWTH=[.025,.018,.012,.006,0,-.004,-.008,-.012];
 function updateSchoolGrowth(state,tables){const g=state.schoolGrowth??={};for(const d in tables)tables[d].forEach((r,i)=>{if(r.key==='AST')return;g[r.key]=Math.round(Math.max(-.04,Math.min(.1,(g[r.key]||0)*.6+(RANK_GROWTH[i]??0)))*1000)/1000;});return g;}
 const DIV_BOOST={1:.03,2:.1,3:0},AWAKEN_BOOST=.16,OPP_SEASON_BOOST=.03;
 const SSR_POOL=()=>CHARACTERS.filter(c=>c.rarity==='SSR'&&c.id!=='ronaldo'&&c.id!=='torres');
+// 학교별 주 속성: 대부분의 학교는 같은 속성 학생 3명을 중심으로 꾸려져 상성 싸움이 뚜렷해요. 오브시디언·발키리·하버라이트·메도우는 혼합 편성이에요.
+const SCHOOL_ELEMENT={ECL:'어둠',SYL:'바람',BEL:'물',ARC:'전기',NTH:'얼음',SOL:'빛',MAR:'물',GRN:'풀',EMB:'불',MIS:'어둠',CRW:'바람',SNW:'얼음',LUX:'빛',FRN:'바람',DSK:'어둠',TID:'물',CIN:'불',WIL:'풀',QRZ:'땅'};
+const schoolElement=key=>SCHOOL_ELEMENT[key]||null;
+const heroOf=id=>CHARACTERS.find(c=>c.id===id),SPECIAL_HEROES=['ronaldo','torres'];
 function schoolLineup(state,o){if(!o?.lineup||o.short==='AST')return o?.lineup||[];const div=divisionOf(state,o.short)||o.div||2,season=state.season||1,want=Math.min(5,({1:3,2:2,3:1}[div]??1)+Math.floor((season-1)/2)+((o.tier||0)>=2?1:0));
- const line=[...o.lineup],rar=id=>CHARACTERS.find(c=>c.id===id)?.rarity,have=line.filter(id=>rar(id)==='SSR').length;if(have>=want)return line;const rng=random(hash(`lineup-${season}-${o.short}`));let need=want-have;
+ const line=[...o.lineup],rar=id=>heroOf(id)?.rarity,el=id=>heroOf(id)?.element,theme=schoolElement(o.short);
+ // ① 주 속성 3명 맞추기(학교마다 고정): 같은 역할의 그 속성 학생으로 먼저 바꾸고, 없으면 그 속성의 다른 역할 학생으로 바꿉니다.
+ if(theme){const r0=random(hash(`elem-${o.short}`));let have=line.filter(id=>el(id)===theme).length;const idx=line.map((_,i)=>i).filter(i=>el(line[i])!==theme).sort(()=>r0()-.5);
+  for(const i of idx){if(have>=3)break;const role=heroOf(line[i])?.role,ok=c=>c.element===theme&&!line.includes(c.id)&&!SPECIAL_HEROES.includes(c.id);let pool=CHARACTERS.filter(c=>ok(c)&&c.role===role);if(!pool.length)pool=CHARACTERS.filter(ok);if(!pool.length)break;line[i]=pool[Math.floor(r0()*pool.length)].id;have++;}}
+ // ② 리그가 높고 시즌이 지날수록 SSR이 늘어납니다(같은 역할, 가능하면 같은 속성으로 바꿔 주 속성을 지킵니다).
+ const haveSSR=line.filter(id=>rar(id)==='SSR').length;if(haveSSR>=want)return line;const rng=random(hash(`lineup-${season}-${o.short}`));let need=want-haveSSR;
  const order=line.map((id,i)=>i).sort((a,b)=>({R:0,SR:1,SSR:2}[rar(line[a])]??1)-({R:0,SR:1,SSR:2}[rar(line[b])]??1)||rng()-.5);
- for(const i of order){if(need<=0)break;if(rar(line[i])==='SSR')continue;const role=CHARACTERS.find(c=>c.id===line[i])?.role,pool=SSR_POOL().filter(c=>c.role===role&&!line.includes(c.id));if(!pool.length)continue;line[i]=pool[Math.floor(rng()*pool.length)].id;need--;}
+ // 차례로 넓혀 가며 찾습니다: 같은 역할·같은 속성 → (주 속성이 아닌 자리) 같은 역할 → (주 속성 자리) 같은 속성 다른 역할 → (주 속성이 아닌 자리) 아무 SSR
+ const passes=[(c,r,e)=>c.role===r&&c.element===e,(c,r,e)=>e!==theme&&c.role===r,(c,r,e)=>e===theme&&c.element===e,(c,r,e)=>e!==theme];
+ for(const ok of passes)for(const i of order){if(need<=0)break;if(rar(line[i])==='SSR')continue;const role=heroOf(line[i])?.role,e=el(line[i]),pool=SSR_POOL().filter(c=>!line.includes(c.id)&&ok(c,role,e));if(!pool.length)continue;line[i]=pool[Math.floor(rng()*pool.length)].id;need--;}
  return line;}
 // 돌풍: 매 시즌 두 학교가 서로 다른 시점(전반 3~5라운드 · 후반 8~10라운드)에 폼이 급상승합니다.
 function awakenedTeams(state){const season=state.season||1,keys=DIVISIONS.flatMap(d=>state.divisions?.[d]||[]).filter(k=>k!=='AST');if(keys.length<2)return {rounds:[],teams:[]};const rng=random(hash(`awake-${season}`)),pick=shuffle(keys,rng).slice(0,2);return {teams:pick,rounds:[3+Math.floor(rng()*3),8+Math.floor(rng()*3)]};}
@@ -1360,7 +1375,7 @@ function leagueTable(state,div=state.division){
   state.leagues[div].results.forEach(round=>(round||[]).forEach(m=>{[[m.home,m.hs,m.as,0],[m.away,m.as,m.hs,1]].forEach(([k,f,a,side])=>{const r=rows[k];if(!r)return;r.p++;r.gf+=f;r.ga+=a;const res=m.w===2?'D':m.w===side?'W':'L';r.form.push(res);if(res==='W'){r.w++;r.pts+=3;}else if(res==='D'){r.d++;r.pts++;}else r.l++;});}));
   return Object.values(rows).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf||a.key.localeCompare(b.key));
 }
-function teamFromState(state){return {info:teamInfo('AST',state),color:teamColorOf(state),tactics:{...state.tactics},members:state.squad.map(id=>({...stats(id,state.roster[id],unitBonus(state,id)),order:{...(state.tactics.orders?.[id]||{})}})),positions:formationPositions(state)};}
+function teamFromState(state){return {info:teamInfo('AST',state),color:teamColorOf(state),tactics:{...state.tactics},members:state.squad.map(id=>({...stats(id,state.roster[id],unitBonus(state,id)),injured:state.roster[id]?.injury?{label:state.roster[id].injury.label,pen:state.roster[id].injury.pen}:null,streak:state.roster[id]?.streak||0,order:{...(state.tactics.orders?.[id]||{})}})),positions:formationPositions(state)};}
 function teamFromOpponent(o,level,boost=0){return {info:o,tactics:{...o.style},boost,members:o.lineup.map(id=>stats(id,{legacy:true,level,stars:Math.max(0,o.tier||0),attack:(level-1)*6,defense:(level-1)*4,speed:level-1,awaken:AWAKEN.filter(a=>level>=a.level).length},{hp:boost,atk:boost,def:boost})),positions:presetPositions(o.style.formation,o.lineup)};}
 const opponentTeam=(state,o,round=state.match)=>teamFromOpponent({...o,lineup:schoolLineup(state,o)},opponentLevel(state,o,round),opponentBoost(state,o.short,round).total);
 const kills=(b,team)=>b.units.filter(u=>u.team!==team&&!u.alive&&!u.subbedOut).length;
@@ -1877,7 +1892,7 @@ function dailyPaper(state){
   if(!out.length)out.push({tag:'아카데미',title:'오늘도 평화로운 아스트라',body:'큰 소식 없는 하루. 훈련장에는 땀방울만 가득하다.'});
   return {season:state.season,day:state.day,no:(state.paper?.no||0)+1,seen:false,articles:out.map(({p,...a})=>a)};}
 function rest(state){restDay(state);state.lastAuto=null;state.lastClass=timetableDay(state);quarterTick(state);streakScoop(state);awakenScoop(state);powerScoop(state);publishPaper(state);}
-function restDay(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-25-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
+function restDay(state){const med=state.facilities?.medical||0,dorm=state.facilities?.dorm||0;state.day++;Object.entries(state.roster).forEach(([id,p])=>{if(p.injury){p.injury.days-=1+(med>=2?1:0);if(p.injury.days<=0){p.injury=null;addNews(state,'회복',`${CHARACTERS.find(c=>c.id===id).name} 부상 회복`);}}});Object.values(state.roster).forEach(p=>{p.fatigue=Math.max(0,p.fatigue-DAILY_RECOVERY-med*8);if(p.morale!=null)p.morale=clamp100(p.morale<70?p.morale+1+dorm*2:p.morale>70?p.morale-1:p.morale);});}
 // 하루를 넘기고, 인연 이야기나 아카데미 이벤트가 생길 수 있습니다.
 function advanceDay(state,rng=Math.random){
   if(isMatchDay(state)||state.pendingEvent||state.sacked)return false;rest(state);
@@ -2161,9 +2176,9 @@ function settle(state,battle){
   state.history.unshift({opponent:battle.opponent.name,opp,type,label,full:type==='cup'?`${fx.cupName} ${fx.stageName}`:`${state.division}부 리그 ${round+1}라운드`,cup:type==='cup'?fx.letter:null,stage:type==='cup'?fx.stage:null,outcome:type==='cup'?(cupWin?(fx.stage>=stagesOf(cupOf(state,fx.letter)).length-1?'우승!':`${stagesOf(cupOf(state,fx.letter))[fx.stage+1]} 진출`):`${fx.stageName} 탈락`):null,quote,win:type==='cup'?cupWin:win,draw:type==='cup'?false:draw,pen:type==='cup'&&draw,score,round:round+1,time:Math.round(battle.time),day:state.day,season:state.season,gold,gems,mvp:{id:mvp.id,team:mvp.team,rating:mvp.rating},units:battle.units.map(u=>({id:u.id,team:u.team,damage:u.damage,healing:u.healing,shielded:Math.round(u.shielded||0),kills:u.kills,taken:u.taken,rating:u.rating,alive:u.alive,sub:u.uid.includes('s')||!!u.subbedOut}))});state.history=state.history.slice(0,60);
   const levels={},played=new Set(battle.units.filter(u=>u.team===0).map(u=>u.id)),good=win||cupWin,injuries=[],growth=[];
   Object.entries(state.roster).forEach(([id,p])=>{
-    if(!played.has(id)){p.morale=clamp100(p.morale-2);return;}
+    if(!played.has(id)){p.morale=clamp100(p.morale-2);p.streak=0;return;}
     if(!p.injury&&random(hash(`injury-${state.season}-${round}-${Math.round(battle.time*10)}-${id}`))()<injuryChance(p)){const major=random(hash(`injury-kind-${state.season}-${round}-${id}`))()<.25,def=INJURIES[major?1:0];p.injury={type:def.id,label:def.label,name:def.names[(round+id.length)%def.names.length],days:def.days,pen:def.pen};injuries.push({id,...p.injury});if(major)pushScoop(state,{tag:'부상',title:`${CHARACTERS.find(c=>c.id===id).name}, 장기 부상으로 이탈`,body:`${p.injury.name} 진단으로 ${def.days}일 결장이 불가피하다. 아스트라 전력에 큰 공백이 생겼다.`,hero:id});addNews(state,'부상',`${CHARACTERS.find(c=>c.id===id).name} ${def.label} · ${p.injury.name} (${def.days}일)`);}p.injuryOmen=false;
-    const u=battle.units.find(v=>v.team===0&&v.id===id);levels[id]=p.level;p.xp+=good?65:40;p.fatigue=Math.max(0,Math.min(100,p.fatigue+12-med*3));levelUp(p);
+    const u=battle.units.find(v=>v.team===0&&v.id===id);levels[id]=p.level;p.xp+=good?65:40;p.streak=(p.streak||0)+1;p.fatigue=Math.max(0,Math.min(100,p.fatigue+12+STREAK_FATIGUE[Math.min(STREAK_FATIGUE.length-1,p.streak)]-med*3));levelUp(p);
     p.apps++;p.ratingSum+=u.rating;p.kills+=u.kills;growth.push({id,...matchGrowth(p,CHARACTERS.find(c=>c.id===id).role,u.rating)});const isMvp=mvp.team===0&&mvp.id===id;if(isMvp)p.mvp++;
     p.morale=clamp100(p.morale+(good?6:draw?1:-5)+(u.rating>=8?4:u.rating<=5.5?-3:0));p.affinity=Math.min(100,p.affinity+2+(isMvp?5:0));
   });
